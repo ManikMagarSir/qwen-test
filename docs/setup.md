@@ -116,7 +116,7 @@ PROXMOX_PORT=8006
 PROXMOX_USER=root@pam
 PROXMOX_PASSWORD=your-proxmox-password
 PROXMOX_NODE=pve
-CORS_ORIGINS=http://localhost:3000,http://192.168.1.100:3000
+CORS_ORIGINS=http://localhost,http://localhost:3000,http://192.168.1.100,http://192.168.1.100:3000
 LOG_LEVEL=info
 ```
 
@@ -131,7 +131,7 @@ LOG_LEVEL=info
 | `PROXMOX_PASSWORD` | Proxmox API password |
 | `PROXMOX_NODE` | Proxmox node name |
 | `PROXMOX_SSL_VERIFY` | Verify Proxmox TLS certificate (default: false) |
-| `CORS_ORIGINS` | Comma-separated allowed CORS origins |
+| `CORS_ORIGINS` | Comma-separated allowed CORS origins (include both with and without default port, e.g. `http://localhost` and `http://localhost:3000`) |
 | `LOG_LEVEL` | Winston log level (debug, info, warn, error) |
 
 Generate a secure JWT secret:

@@ -36,13 +36,26 @@ app.use((req, res, next) => {
   next();
 });
 
-const allowedOrigins = process.env.CORS_ORIGINS
+function normalizeOrigin(origin) {
+  try {
+    const u = new URL(origin);
+    if ((u.protocol === 'http:' && u.port === '80') || (u.protocol === 'https:' && u.port === '443')) {
+      u.port = '';
+    }
+    return u.origin;
+  } catch {
+    return origin;
+  }
+}
+
+const allowedOrigins = (process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',').map((s) => s.trim())
-  : ['http://localhost:3000'];
+  : ['http://localhost:3000']
+).map(normalizeOrigin);
 
 app.use(cors({
   origin: (origin, cb) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || allowedOrigins.includes(normalizeOrigin(origin))) {
       cb(null, true);
     } else {
       cb(new Error('Not allowed by CORS'));
