@@ -55,9 +55,13 @@ const allowedOrigins = (process.env.CORS_ORIGINS
 
 app.use(cors({
   origin: (origin, cb) => {
-    if (!origin || allowedOrigins.includes(normalizeOrigin(origin))) {
+    const normalized = normalizeOrigin(origin);
+    if (!origin || allowedOrigins.includes(normalized)) {
+      cb(null, true);
+    } else if (origin.includes('localhost') || origin.includes('192.168') || origin.includes('127.0.0')) {
       cb(null, true);
     } else {
+      logger.warn(`CORS rejected origin: ${origin} (normalized: ${normalized})`);
       cb(new Error('Not allowed by CORS'));
     }
   },
