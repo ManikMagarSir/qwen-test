@@ -252,7 +252,6 @@ const styles = {
     border: '1px solid var(--color-border)',
     animation: 'slideUp 0.4s ease both',
     position: 'relative',
-    overflow: 'hidden',
   },
   top: {
     display: 'flex',

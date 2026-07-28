@@ -1,10 +1,11 @@
 import React, { useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import { Monitor, X, Maximize2, Minimize2 } from 'lucide-react';
 
-export default function TerminalConsole({ instance, onClose }) {
+function TerminalContent({ instance, onClose }) {
   const termRef = useRef(null);
   const [fullscreen, setFullscreen] = React.useState(false);
 
@@ -89,10 +90,8 @@ export default function TerminalConsole({ instance, onClose }) {
         onClick={(e) => e.stopPropagation()}
         style={{
           ...styles.container,
-          width: fullscreen ? '100%' : '100%',
           maxWidth: fullscreen ? '100%' : '1000px',
           height: fullscreen ? '100dvh' : '85vh',
-          maxHeight: fullscreen ? '100dvh' : '85vh',
           borderRadius: fullscreen ? 0 : 'var(--radius-lg)',
         }}
       >
@@ -129,29 +128,37 @@ export default function TerminalConsole({ instance, onClose }) {
   );
 }
 
+export default function TerminalConsole(props) {
+  const [mounted, setMounted] = React.useState(false);
+  useEffect(() => { setMounted(true); return () => setMounted(false); }, []);
+  if (!mounted) return null;
+  return ReactDOM.createPortal(
+    <TerminalContent {...props} />,
+    document.body
+  );
+}
+
 const styles = {
   overlay: {
     position: 'fixed',
     top: 0, left: 0, right: 0, bottom: 0,
-    background: 'rgba(0, 0, 0, 0.75)',
-    backdropFilter: 'blur(8px)',
-    WebkitBackdropFilter: 'blur(8px)',
+    background: 'rgba(0, 0, 0, 0.8)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 999,
-    padding: '20px',
+    zIndex: 2147483647,
+    padding: '16px',
     animation: 'fadeIn 0.15s ease',
   },
   container: {
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
-    border: '1px solid rgba(34, 197, 94, 0.3)',
-    boxShadow: '0 0 40px rgba(34, 197, 94, 0.1), 0 25px 80px rgba(0, 0, 0, 0.6)',
+    width: '100%',
+    border: '1px solid rgba(34, 197, 94, 0.35)',
+    boxShadow: '0 0 60px rgba(34, 197, 94, 0.12), 0 30px 80px rgba(0, 0, 0, 0.7)',
     background: '#0A0F1E',
     animation: 'scaleIn 0.2s ease',
-    position: 'relative',
   },
   header: {
     display: 'flex',
@@ -173,71 +180,32 @@ const styles = {
     gap: '8px',
   },
   iconWrap: {
-    width: '30px',
-    height: '30px',
+    width: '30px', height: '30px',
     borderRadius: '6px',
     background: 'rgba(34, 197, 94, 0.12)',
     border: '1px solid rgba(34, 197, 94, 0.2)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
-  title: {
-    color: '#F1F5F9',
-    fontWeight: 600,
-    fontSize: '0.92rem',
-  },
-  separator: {
-    color: '#334155',
-    fontSize: '0.85rem',
-  },
-  ip: {
-    color: '#64748B',
-    fontSize: '0.82rem',
-    fontFamily: 'var(--font-heading)',
-  },
+  title: { color: '#F1F5F9', fontWeight: 600, fontSize: '0.92rem' },
+  separator: { color: '#334155', fontSize: '0.85rem' },
+  ip: { color: '#64748B', fontSize: '0.82rem', fontFamily: 'var(--font-heading)' },
   connStatus: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '5px',
-    padding: '3px 10px',
-    borderRadius: '20px',
-    background: 'rgba(34, 197, 94, 0.1)',
-    color: '#4ADE80',
-    fontSize: '0.7rem',
-    fontWeight: 600,
-    fontFamily: 'var(--font-heading)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.3px',
+    display: 'flex', alignItems: 'center', gap: '5px',
+    padding: '3px 10px', borderRadius: '20px',
+    background: 'rgba(34, 197, 94, 0.1)', color: '#4ADE80',
+    fontSize: '0.7rem', fontWeight: 600, fontFamily: 'var(--font-heading)',
+    textTransform: 'uppercase', letterSpacing: '0.3px',
   },
   connDot: {
-    width: 5,
-    height: 5,
-    borderRadius: '50%',
-    background: '#22C55E',
+    width: 5, height: 5, borderRadius: '50%', background: '#22C55E',
     animation: 'glowPulse 1.5s ease-in-out infinite',
   },
   headerBtn: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '30px',
-    height: '30px',
-    borderRadius: '6px',
-    border: 'none',
-    background: 'transparent',
-    color: '#94A3B8',
-    cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    width: '30px', height: '30px', borderRadius: '6px', border: 'none',
+    background: 'transparent', color: '#94A3B8', cursor: 'pointer',
     transition: 'all var(--transition-fast)',
   },
-  headerDivider: {
-    width: '1px',
-    height: '20px',
-    background: 'rgba(51, 65, 85, 0.5)',
-  },
-  terminal: {
-    flex: 1,
-    background: '#0A0F1E',
-    padding: '6px',
-  },
+  headerDivider: { width: '1px', height: '20px', background: 'rgba(51, 65, 85, 0.5)' },
+  terminal: { flex: 1, background: '#0A0F1E', padding: '6px' },
 };
