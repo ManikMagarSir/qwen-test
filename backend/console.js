@@ -1,3 +1,5 @@
+const fs = require('fs');
+const path = require('path');
 const { WebSocketServer } = require('ws');
 const jwt = require('jsonwebtoken');
 const { Client } = require('ssh2');
@@ -55,11 +57,14 @@ function setupConsole(server) {
       ws.close();
     });
 
+    const keyPath = path.join(__dirname, '../.ssh/cloud');
+    const privateKey = fs.readFileSync(keyPath, 'utf8');
+
     ssh.connect({
       host: process.env.PROXMOX_HOST,
       port: 22,
       username: 'root',
-      password: process.env.PROXMOX_PASSWORD,
+      privateKey,
       readyTimeout: 10000,
     });
   });

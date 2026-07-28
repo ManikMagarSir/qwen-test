@@ -16,7 +16,16 @@ const auth = async (req, res, next) => {
     req.user = user;
     next();
   } catch (err) {
-    res.status(401).json({ error: 'Invalid token' });
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Token expired', code: 'TOKEN_EXPIRED' });
+    }
+    if (err.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Invalid token', code: 'TOKEN_INVALID' });
+    }
+    if (err.name === 'NotBeforeError') {
+      return res.status(401).json({ error: 'Token not yet active', code: 'TOKEN_NOT_ACTIVE' });
+    }
+    res.status(401).json({ error: 'Authentication failed', code: 'TOKEN_ERROR' });
   }
 };
 

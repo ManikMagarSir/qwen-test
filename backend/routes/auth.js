@@ -56,4 +56,9 @@ router.get('/me', auth, async (req, res) => {
   res.json({ user: req.user });
 });
 
+router.post('/refresh', auth, async (req, res) => {
+  const token = signToken(req.user);
+  res.json({ token });
+});
+
 module.exports = router;

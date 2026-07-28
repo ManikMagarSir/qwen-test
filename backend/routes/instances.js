@@ -75,65 +75,76 @@ router.get('/node', auth, async (req, res, next) => {
 });
 
 router.post('/create', auth, validate('createInstance'), async (req, res, next) => {
+  const mongoose = require('mongoose');
+  const { type, name, cpus, memory, disk, storage, ostemplate, password, net, bridge } = req.body;
+
+  const node = process.env.PROXMOX_NODE;
+  const vmid = await proxmox.getNextVmid();
+
+  let ipInfo = null;
+  let instanceId = null;
+
+  const session = await mongoose.startSession();
   try {
-    const { type, name, cpus, memory, disk, storage, ostemplate, password, net, bridge } = req.body;
+    session.startTransaction();
 
-    const node = process.env.PROXMOX_NODE;
-    const vmid = await proxmox.getNextVmid();
-
-    let ipInfo = null;
     if (type === 'lxc') {
-      try {
-        const tempInstance = await Instance.create({
-          owner: req.user._id, type, vmid: Number(vmid), node, name,
-          cpus, memory, disk, status: 'creating',
-        });
-        ipInfo = await allocateIP(tempInstance._id, req.user._id);
-        tempInstance.ip = ipInfo.ip;
-        await tempInstance.save();
-      } catch (ipErr) {
-        return res.status(507).json({ error: `IP allocation failed: ${ipErr.message}` });
-      }
+      const [tempInstance] = await Instance.create([{
+        owner: req.user._id, type, vmid: Number(vmid), node, name,
+        cpus, memory, disk, status: 'creating',
+      }], { session });
+      instanceId = tempInstance._id;
+
+      ipInfo = await allocateIP(tempInstance._id, req.user._id);
+      tempInstance.ip = ipInfo.ip;
+      await tempInstance.save({ session });
     }
 
-    const params = { vmid, name, cores: cpus, memory };
-
-    let result;
-    try {
-      params.ostemplate = ostemplate;
-      params.storage = storage;
-      try {
-        const pubKey = fs.readFileSync(path.join(__dirname, '../../.ssh/cloud.pub'), 'utf8').trim();
-        params['ssh-public-keys'] = pubKey;
-      } catch (_) {}
-      params.password = password;
-      params.bridge = bridge;
-      if (ipInfo) {
-        params.ip = ipInfo.ip;
-        params.gateway = ipInfo.gateway;
-        params.prefix = 24;
-        params.nameserver = '8.8.8.8';
-      }
-      result = await proxmox.createLxc(node, params);
-    } catch (proxErr) {
-      if (ipInfo) {
-        await releaseIP(ipInfo.ip).catch(() => {});
-        await Instance.deleteOne({ vmid: Number(vmid) }).catch(() => {});
-      }
-      return res.status(500).json({ error: proxErr.message });
-    }
-
-    const instance = await Instance.findOneAndUpdate(
-      { vmid: Number(vmid) },
-      { $set: { status: 'stopped', name, password } },
-      { new: true },
-    );
-
-    logger.info(`Instance created: ${name} (VMID ${vmid}) by ${req.user.email}`);
-    res.status(201).json({ instance, task: result });
-  } catch (err) {
-    next(err);
+    await session.commitTransaction();
+  } catch (ipErr) {
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(507).json({ error: `IP allocation failed: ${ipErr.message}` });
   }
+  session.endSession();
+
+  const params = { vmid, name, cores: cpus, memory };
+
+  let result;
+  try {
+    params.ostemplate = ostemplate;
+    params.storage = storage;
+    try {
+      const pubKey = fs.readFileSync(path.join(__dirname, '../../.ssh/cloud.pub'), 'utf8').trim();
+      params['ssh-public-keys'] = pubKey;
+    } catch (_) {}
+    params.password = password;
+    params.bridge = bridge;
+    if (ipInfo) {
+      params.ip = ipInfo.ip;
+      params.gateway = ipInfo.gateway;
+      params.prefix = 24;
+      params.nameserver = '8.8.8.8';
+    }
+    result = await proxmox.createLxc(node, params);
+  } catch (proxErr) {
+    if (ipInfo) {
+      await releaseIP(ipInfo.ip).catch(() => {});
+    }
+    if (instanceId) {
+      await Instance.deleteOne({ _id: instanceId }).catch(() => {});
+    }
+    return res.status(500).json({ error: proxErr.message });
+  }
+
+  const instance = await Instance.findOneAndUpdate(
+    { vmid: Number(vmid) },
+    { $set: { status: 'stopped', name, password } },
+    { new: true },
+  );
+
+  logger.info(`Instance created: ${name} (VMID ${vmid}) by ${req.user.email}`);
+  res.status(201).json({ instance, task: result });
 });
 
 router.get('/:id', auth, async (req, res, next) => {
