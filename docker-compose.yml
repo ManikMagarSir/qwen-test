@@ -1,0 +1,43 @@
+services:
+  mongodb:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - cloud_net
+
+  backend:
+    build:
+      context: .
+      target: backend
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+    env_file: backend/.env
+    environment:
+      MONGO_URI: mongodb://mongodb:27017/cloud
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./.ssh:/app/backend/.ssh
+    networks:
+      - cloud_net
+
+  frontend:
+    build:
+      context: .
+      target: frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    networks:
+      - cloud_net
+
+volumes:
+  mongo_data:
+
+networks:
+  cloud_net:

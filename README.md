@@ -8,21 +8,29 @@ Built with the **MERN stack** (MongoDB, Express, React, Node.js).
 
 - **Multi-tenant isolation** — Users register and authenticate via JWT; each user sees only their own instances
 - **LXC container management** — Create, start, stop, reboot, suspend, and delete containers
+- **Real-time resource scaling** — Adjust CPU cores, memory, and disk on running containers without recreation
+- **Live monitoring** — WebSocket-powered per-container metrics (CPU, RAM, swap, disk usage bars)
 - **Static IP allocation** — Automatic IP assignment from `192.168.55.0/24` with atomic claim/release
 - **OS template browser** — Lists available templates from Proxmox storage for easy selection
 - **Snapshot management** — Create, list, rollback, and delete snapshots per container
 - **Web console** — Browser-based terminal via Proxmox host SSH + `lxc-attach` (no SSH needed inside containers)
+- **Profile management** — Edit name and change password from the UI
+- **Auto-sync status** — Container status synced with Proxmox on every dashboard fetch
+- **Input validation** — Joi schemas on all API endpoints prevent malformed requests
+- **Rate limiting** — Auth endpoints throttled to prevent brute force attacks
+- **Structured logging** — Winston logger with timestamps and error stacks
 - **Dark theme UI** — Professional interface with Fira Code/Fira Sans typography and Lucide icons
 
 ## Architecture
 
 ```
 Browser ──HTTP──> React Frontend ──API──> Express Backend ──Proxmox API──> Proxmox VE
-                        │                      │
-                        │                      ├── MongoDB (users, instances, IP allocations)
-                        │                      └── SSH ──> Proxmox Host ──lxc-attach──> Container shell
-                        │
-                        └── WebSocket ──> Console Proxy
+                         │                      │
+                         │                      ├── MongoDB (users, instances, IP allocations)
+                         │                      └── SSH ──> Proxmox Host ──lxc-attach──> Container shell
+                         │
+                         ├── WebSocket ──> Console Proxy
+                         └── WebSocket ──> Live Monitoring
 ```
 
 See `docs/architecture.md` for a detailed breakdown.
@@ -66,6 +74,8 @@ Edit `backend/.env`:
 | `PROXMOX_USER` | Proxmox API user (e.g. `root@pam`) |
 | `PROXMOX_PASSWORD` | Proxmox API password |
 | `PROXMOX_NODE` | Proxmox node name |
+| `CORS_ORIGINS` | Comma-separated allowed origins (default: `http://localhost:3000`) |
+| `LOG_LEVEL` | Winston log level (default: `info`) |
 
 ### 3. Run
 
@@ -89,27 +99,44 @@ cd frontend && npm start
 - Frontend: `http://localhost:3000` (also on LAN at `http://<lan-ip>:3000`)
 - Backend: `http://localhost:5000`
 
+### 4. Run with Docker
+
+```bash
+docker compose up -d
+```
+
+See `docs/deployment.md` for production configuration.
+
 ## Usage
 
 1. **Register** at `/register` — create your account
 2. **Create a container** — pick an OS template, set CPU/memory/disk, choose a root password
 3. **Manage** — start, stop, reboot, suspend from the dashboard
-4. **Console** — click the Terminal button on a running container for browser-based shell access
-5. **Snapshots** — expand the snapshots section to create, rollback, or delete snapshots
+4. **Resize** — click the Resize button on a running container to adjust CPU/memory/disk instantly
+5. **Monitor** — view per-container live metrics (CPU, RAM, swap, disk usage) in the Monitoring page
+6. **Console** — click the Terminal button on a running container for browser-based shell access
+7. **Snapshots** — expand the snapshots section to create, rollback, or delete snapshots
+8. **Profile** — update your name or change password from the Profile page
 
 ## API Endpoints
 
 ### Auth
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/api/auth/register` | Register a new user |
-| POST | `/api/auth/login` | Login |
+| POST | `/api/auth/register` | Register a new user (rate-limited) |
+| POST | `/api/auth/login` | Login (rate-limited) |
 | GET | `/api/auth/me` | Get current user |
+
+### Profile
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/profile` | Get profile |
+| PUT | `/api/profile` | Update name or password |
 
 ### Instances
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/instances` | List user's instances |
+| GET | `/api/instances` | List user's instances (auto-syncs status with Proxmox) |
 | POST | `/api/instances/create` | Create LXC container |
 | GET | `/api/instances/:id` | Get instance details |
 | DELETE | `/api/instances/:id` | Delete instance |
@@ -118,6 +145,7 @@ cd frontend && npm start
 | POST | `/api/instances/:id/reboot` | Reboot instance |
 | POST | `/api/instances/:id/suspend` | Suspend instance |
 | POST | `/api/instances/:id/resume` | Resume instance |
+| PUT | `/api/instances/:id/resize` | Resize CPU/memory/disk |
 
 ### Snapshots
 | Method | Path | Description |
@@ -132,12 +160,25 @@ cd frontend && npm start
 |--------|------|-------------|
 | GET | `/api/templates` | List OS templates |
 
+### System
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/health` | Health check (MongoDB + Proxmox reachability) |
+
+### WebSocket
+| Path | Description |
+|------|-------------|
+| `ws://host:5000/api/console/:id?token=` | Interactive container terminal |
+| `ws://host:5000/api/monitor/ws?token=` | Live metrics stream (5s interval) |
+
 ## Tech Stack
 
 | Layer | Technology |
 |-------|------------|
 | Frontend | React 18, react-router-dom, Lucide React, xterm.js |
-| Backend | Node.js, Express, Mongoose, JWT, ssh2 |
+| Backend | Node.js, Express, Mongoose, JWT, ssh2, Winston, Joi |
 | Database | MongoDB |
 | Virtualization | Proxmox VE API |
+| Testing | Jest, Supertest |
+| Deployment | Docker, docker-compose, Nginx |
 | Fonts | Fira Code, Fira Sans |

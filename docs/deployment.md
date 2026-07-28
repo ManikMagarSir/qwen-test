@@ -2,38 +2,72 @@
 
 ---
 
-## Production Architecture
+## Deployment Options
 
-```
-Internet ──> Nginx (reverse proxy, TLS) ──> Backend (port 5000)
-                                      └──> Frontend (static files / build/)
+There are three ways to deploy Cloud Manager in production:
 
-Backend ──> MongoDB
-Backend ──> Proxmox VE (port 8006, internal)
-Backend ──> SSH to Proxmox host (port 22, internal)
-```
-
-In production you should:
-- Serve the React build as static files from Nginx (not `npm start`)
-- Run the backend as a systemd service
-- Use a reverse proxy with TLS termination
-- Restrict Proxmox API/SSH to local network
-- Use a properly configured MongoDB instance (auth enabled)
+1. **Docker Compose** (recommended) — Full stack with MongoDB, backend, and Nginx frontend
+2. **Systemd + Nginx** — Traditional single-server deployment
+3. **Standalone** — Backend + frontend build served by any web server
 
 ---
 
-## 1. Build the Frontend
+## 1. Docker Compose (Recommended)
+
+### Prerequisites
+
+- Docker Engine 24+
+- Docker Compose v2
+
+### Setup
+
+```bash
+# Clone and configure
+git clone <repo-url> cloud
+cd cloud
+cp backend/.env-example backend/.env
+
+# Edit backend/.env with production values
+vim backend/.env
+
+# Start all services
+docker compose up -d
+
+# Check logs
+docker compose logs -f
+```
+
+The stack starts:
+- **MongoDB 7** on port 27017 (internal only)
+- **Backend** on port 5000
+- **Nginx frontend** on port 80
+
+### Configuration
+
+The `docker-compose.yml` sets `MONGO_URI=mongodb://mongodb:27017/cloud` automatically. Your `.env` file is passed to the backend container.
+
+### Updating
+
+```bash
+git pull
+docker compose build --no-cache
+docker compose up -d
+```
+
+---
+
+## 2. Systemd + Nginx (Traditional)
+
+### 2.1 Build the Frontend
 
 ```bash
 cd frontend
-npm run build
+npm ci && npm run build
 ```
 
-This produces static files in `frontend/build/`. Copy them to your web server's docroot.
+This produces static files in `frontend/build/`.
 
----
-
-## 2. Backend systemd Service
+### 2.2 Backend systemd Service
 
 Create `/etc/systemd/system/cloud-backend.service`:
 
@@ -51,6 +85,7 @@ ExecStart=/usr/bin/node /opt/cloud/backend/server.js
 Restart=always
 RestartSec=5
 Environment=NODE_ENV=production
+Environment=LOG_LEVEL=warn
 
 # Security hardening
 NoNewPrivileges=true
@@ -70,15 +105,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now cloud-backend
 ```
 
-Check status:
-
-```bash
-sudo journalctl -u cloud-backend -f
-```
-
----
-
-## 3. Nginx Reverse Proxy
+### 2.3 Nginx Reverse Proxy
 
 Install Nginx:
 
@@ -93,11 +120,10 @@ server {
     listen 80;
     server_name cloud.example.com;
 
-    # Frontend static files
     root /opt/cloud/frontend/build;
     index index.html;
 
-    # API proxy
+    # API proxy (includes WebSocket upgrade)
     location /api/ {
         proxy_pass http://127.0.0.1:5000;
         proxy_http_version 1.1;
@@ -107,22 +133,9 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
     }
 
-    # WebSocket console proxy
-    location /api/console/ {
-        proxy_pass http://127.0.0.1:5000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_read_timeout 86400s;
-        proxy_send_timeout 86400s;
-    }
-
-    # SPA fallback — serve index.html for all frontend routes
+    # SPA fallback
     location / {
         try_files $uri $uri/ /index.html;
     }
@@ -135,7 +148,7 @@ server {
 }
 ```
 
-Enable site and TLS:
+Enable site and set up TLS:
 
 ```bash
 sudo ln -s /etc/nginx/sites-available/cloud /etc/nginx/sites-enabled/
@@ -145,9 +158,9 @@ sudo nginx -t && sudo systemctl reload nginx
 
 ---
 
-## 4. MongoDB Production Configuration
+## 3. MongoDB Production Configuration
 
-Enable authentication and create a dedicated user:
+Enable authentication:
 
 ```bash
 mongosh
@@ -190,7 +203,7 @@ sudo systemctl restart mongod
 
 ---
 
-## 5. Environment Security
+## 4. Environment Security
 
 ### Production `.env`
 
@@ -203,6 +216,8 @@ PROXMOX_PORT=8006
 PROXMOX_USER=cloudmgr@pve
 PROXMOX_PASSWORD=<strong-password>
 PROXMOX_NODE=pve
+CORS_ORIGINS=https://cloud.example.com
+LOG_LEVEL=warn
 ```
 
 ### File permissions
@@ -214,9 +229,17 @@ chmod 644 /opt/cloud/.ssh/cloud.pub
 chown -R cloudmgr:cloudmgr /opt/cloud
 ```
 
+### Rate limiting
+
+In production the backend applies:
+- **Global:** 100 requests per 15 minutes per IP
+- **Auth:** 20 requests per 15 minutes per IP
+
+These limits are configured in `server.js` and `routes/auth.js`. Adjust `max` values in the `rateLimit()` calls as needed.
+
 ---
 
-## 6. Firewall Configuration
+## 5. Firewall Configuration
 
 ```bash
 # Allow HTTP/HTTPS
@@ -235,42 +258,35 @@ sudo ufw deny from any to <mongodb-ip> port 27017
 
 ---
 
-## 7. Monitoring
+## 6. Logging
 
-### Process monitoring
+The backend uses **Winston** for structured logging with timestamps. In production, set `LOG_LEVEL=warn` in `.env` to reduce noise.
 
-systemd automatically restarts the backend on failure. Check status:
+### Log output format
 
-```bash
-systemctl status cloud-backend
-journalctl -u cloud-backend --since "1 hour ago"
+```
+2025-01-28 12:00:00 [ERROR] POST /api/instances/create — Proxmox API error
+2025-01-28 12:00:01 [WARN] POST /api/auth/login — Invalid credentials
 ```
 
-### Logging
+Error logs include stack traces and sanitized request bodies (passwords redacted).
 
-The backend logs to stdout (captured by journald). For file logging, add `pino` or `winston` to `server.js`:
-
-```javascript
-const fs = require('fs');
-const accessLog = fs.createWriteStream('/var/log/cloud/access.log', { flags: 'a' });
-app.use((req, res, next) => {
-  accessLog.write(`${new Date().toISOString()} ${req.method} ${req.url}\n`);
-  next();
-});
-```
-
-Create the log directory:
+### Viewing logs
 
 ```bash
-sudo mkdir -p /var/log/cloud
-sudo chown cloudmgr:cloudmgr /var/log/cloud
+# Docker
+docker compose logs -f backend
+
+# systemd
+journalctl -u cloud-backend -f
+
+# Direct (if logging to file)
+tail -f /var/log/cloud/app.log
 ```
 
 ---
 
-## 8. Backup Strategy
-
-### What to back up
+## 7. Backup Strategy
 
 | Data | Location | Frequency |
 |------|----------|-----------|
@@ -293,40 +309,57 @@ mongorestore --uri="mongodb://cloudapp:password@localhost:27017/cloud" /backups/
 
 ---
 
-## 9. Updating
+## 8. Updating
 
 ```bash
 # Pull latest code
 cd /opt/cloud
 git pull
 
-# Update dependencies
+# Docker
+docker compose build --no-cache && docker compose up -d
+
+# systemd
 cd backend && npm ci --production
 cd ../frontend && npm ci && npm run build
-
-# Restart backend
 sudo systemctl restart cloud-backend
-
-# Reload Nginx (if config changed)
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
 ---
 
-## 10. Scaling Considerations
+## 9. Health Checks
 
-For a single Proxmox host, this setup is sufficient. To scale:
+The `/api/health` endpoint returns MongoDB connection status and Proxmox reachability:
 
-- **Multiple Proxmox nodes** — Add `PROXMOX_NODE` as a list, route instances across nodes
-- **Horizontal scaling** — Run multiple backend instances behind the Nginx reverse proxy (stateless except IPAM which uses MongoDB for atomicity)
-- **MongoDB replica set** — Use a replica set for failover instead of a single instance
-- **Redis session cache** — Add Redis for rate limiting and token blacklisting
+```bash
+curl https://cloud.example.com/api/health
+```
+
+```json
+{
+  "status": "ok",
+  "uptime": 12345,
+  "timestamp": "2025-01-28T12:00:00.000Z",
+  "mongodb": "connected",
+  "proxmox": "reachable"
+}
+```
+
+Use this with your monitoring system (e.g., UptimeRobot, Prometheus Blackbox Exporter).
 
 ---
 
-## Load Testing
+## 10. Scaling Considerations
 
-Basic load test with `wrk`:
+- **Multiple Proxmox nodes** — Add logic to distribute instances across nodes
+- **Horizontal backend scaling** — Backend is stateless except IPAM (uses MongoDB for atomicity). Run multiple instances behind Nginx.
+- **MongoDB replica set** — Use a replica set for failover
+- **Redis** — Add Redis for rate limiting and token blacklisting across multiple backend instances
+
+---
+
+## 11. Load Testing
 
 ```bash
 # Install wrk

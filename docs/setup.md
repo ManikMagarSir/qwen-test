@@ -116,7 +116,22 @@ PROXMOX_PORT=8006
 PROXMOX_USER=root@pam
 PROXMOX_PASSWORD=your-proxmox-password
 PROXMOX_NODE=pve
+CORS_ORIGINS=http://localhost:3000,http://192.168.1.100:3000
+LOG_LEVEL=info
 ```
+
+| Variable | Description |
+|----------|-------------|
+| `PORT` | Backend port (default: 5000) |
+| `MONGO_URI` | MongoDB connection string |
+| `JWT_SECRET` | Secret for signing tokens |
+| `PROXMOX_HOST` | IP of your Proxmox host |
+| `PROXMOX_PORT` | API port (default: 8006) |
+| `PROXMOX_USER` | Proxmox API user |
+| `PROXMOX_PASSWORD` | Proxmox API password |
+| `PROXMOX_NODE` | Proxmox node name |
+| `CORS_ORIGINS` | Comma-separated allowed CORS origins |
+| `LOG_LEVEL` | Winston log level (debug, info, warn, error) |
 
 Generate a secure JWT secret:
 
@@ -135,7 +150,7 @@ The IPAM assigns addresses from `192.168.55.0/24`. Ensure your Proxmox bridge (`
 ### Static IP allocation flow
 
 1. Pool is seeded with all 253 addresses on first startup (`initPool()`)
-2. Each new container atomically claims an unallocated IP
+2. Each new container atomically claims an unallocated IP via `findOneAndUpdate`
 3. IPs are released back to the pool on container deletion
 4. The gateway is `192.168.55.1` (reserved, not assigned)
 
@@ -195,6 +210,15 @@ cd frontend
 npm start
 ```
 
+### Docker (production-like)
+
+```bash
+# Edit backend/.env with production values
+docker compose up -d
+```
+
+This starts MongoDB, the backend, and an Nginx-served frontend.
+
 ---
 
 ## 7. Verification
@@ -204,6 +228,8 @@ npm start
 3. Navigate to "New Instance" and create a container
 4. The dashboard should show your new instance
 5. Start the instance and click the Terminal icon to test the Web Console
+6. Go to the Monitoring page to see live metrics
+7. Run `npm test` in the backend to verify the test suite passes
 
 ---
 
@@ -232,6 +258,10 @@ curl -k https://192.168.55.195:8006/api2/json/version
 systemctl status pveproxy
 ```
 
+### CORS errors in browser
+
+Ensure the frontend URL is listed in `CORS_ORIGINS` in your `.env`. In development with `npm start`, CORS allows all origins. In production (Docker or systemd service), only whitelisted origins are allowed.
+
 ### IP pool not seeding
 
 The pool seeds on backend startup via `initPool()`. Check backend logs for:
@@ -251,3 +281,7 @@ ssh root@<proxmox-ip>
 ```
 
 If SSH works, check that the instance ID in the URL matches a MongoDB `_id` and that the instance status is `"running"`.
+
+### WebSocket monitor not connecting
+
+Check that the backend is listening on `0.0.0.0:5000`. The frontend connects to `ws://<hostname>:5000/api/monitor/ws?token=`. Ensure no firewall is blocking the port and the console upgrade handler isn't intercepting the request.

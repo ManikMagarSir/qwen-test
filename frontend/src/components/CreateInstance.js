@@ -41,7 +41,7 @@ export default function CreateInstance() {
     if (!name.trim()) errs.name = 'Name is required';
     else if (!/^[a-zA-Z0-9_-]+$/.test(name)) errs.name = 'Only letters, numbers, hyphens, underscores';
     if (cpus < 1 || cpus > 32) errs.cpus = 'Must be 1-32';
-    if (memory < 128 || memory > 131072) errs.memory = 'Must be 128-131072 MB';
+    if (memory < 64 || memory > 131072) errs.memory = 'Must be 64-131072 MB';
     if (disk < 1 || disk > 1000) errs.disk = 'Must be 1-1000 GB';
     if (!template) errs.template = 'Select a template';
     if (!password.trim()) errs.password = 'Password is required';

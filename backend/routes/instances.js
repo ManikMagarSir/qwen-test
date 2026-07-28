@@ -5,10 +5,12 @@ const { auth } = require('../middleware/auth');
 const Instance = require('../models/Instance');
 const proxmox = require('../services/proxmox');
 const { allocateIP, releaseIP, getIPByInstance } = require('../services/ipam');
+const { validate } = require('../utils/validate');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
-router.get('/', auth, async (req, res) => {
+router.get('/', auth, async (req, res, next) => {
   try {
     let instances = await Instance.find({ owner: req.user._id }).sort('-createdAt').lean();
 
@@ -39,30 +41,30 @@ router.get('/', auth, async (req, res) => {
 
     res.json({ instances });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-router.get('/all', auth, async (req, res) => {
+router.get('/all', auth, async (req, res, next) => {
   try {
     const node = process.env.PROXMOX_NODE;
     const list = await proxmox.listInstances(node);
     res.json({ instances: list });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-router.get('/cluster', auth, async (req, res) => {
+router.get('/cluster', auth, async (req, res, next) => {
   try {
     const resources = await proxmox.getClusterResources();
     res.json({ resources });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-router.get('/node', auth, async (req, res) => {
+router.get('/node', auth, async (req, res, next) => {
   try {
     const node = process.env.PROXMOX_NODE;
     const status = await proxmox.getNodeStatus(node);
@@ -72,27 +74,19 @@ router.get('/node', auth, async (req, res) => {
   }
 });
 
-router.post('/create', auth, async (req, res) => {
+router.post('/create', auth, validate('createInstance'), async (req, res, next) => {
   try {
     const { type, name, cpus, memory, disk, storage, ostemplate, password, net, bridge } = req.body;
-
-    if (!type || !name) {
-      return res.status(400).json({ error: 'type and name are required' });
-    }
-    if (!['qemu', 'lxc'].includes(type)) {
-      return res.status(400).json({ error: 'type must be qemu or lxc' });
-    }
 
     const node = process.env.PROXMOX_NODE;
     const vmid = await proxmox.getNextVmid();
 
-    // Allocate IP first
     let ipInfo = null;
     if (type === 'lxc') {
       try {
         const tempInstance = await Instance.create({
           owner: req.user._id, type, vmid: Number(vmid), node, name,
-          cpus: cpus || 1, memory: memory || 1024, disk: disk || 8, status: 'creating',
+          cpus, memory, disk, status: 'creating',
         });
         ipInfo = await allocateIP(tempInstance._id, req.user._id);
         tempInstance.ip = ipInfo.ip;
@@ -102,45 +96,26 @@ router.post('/create', auth, async (req, res) => {
       }
     }
 
-    const rootPassword = password || 'changeme';
-    const params = {
-      vmid,
-      name,
-      cores: cpus || 1,
-      memory: memory || 1024,
-    };
+    const params = { vmid, name, cores: cpus, memory };
 
     let result;
     try {
-      if (type === 'qemu') {
-        params.ostype = req.body.ostype || 'l26';
-        params.sockets = 1;
-        params.disk = disk || 8;
-        params.storage = storage || 'local-lvm';
-        params.net = net || 'e1000';
-        params.bridge = bridge || 'vmbr0';
-        params.cdrom = req.body.cdrom || 'none';
-        params.ide2 = req.body.ide2 || 'none';
-        result = await proxmox.createQemu(node, params);
-      } else {
-        params.ostemplate = ostemplate || 'local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst';
-        params.storage = storage || 'local-lvm';
-        try {
-          const pubKey = fs.readFileSync(path.join(__dirname, '../../.ssh/cloud.pub'), 'utf8').trim();
-          params['ssh-public-keys'] = pubKey;
-        } catch (_) {}
-        params.password = rootPassword;
-        params.bridge = bridge || 'vmbr0';
-        if (ipInfo) {
-          params.ip = ipInfo.ip;
-          params.gateway = ipInfo.gateway;
-          params.prefix = 24;
-          params.nameserver = '8.8.8.8';
-        }
-        result = await proxmox.createLxc(node, params);
+      params.ostemplate = ostemplate;
+      params.storage = storage;
+      try {
+        const pubKey = fs.readFileSync(path.join(__dirname, '../../.ssh/cloud.pub'), 'utf8').trim();
+        params['ssh-public-keys'] = pubKey;
+      } catch (_) {}
+      params.password = password;
+      params.bridge = bridge;
+      if (ipInfo) {
+        params.ip = ipInfo.ip;
+        params.gateway = ipInfo.gateway;
+        params.prefix = 24;
+        params.nameserver = '8.8.8.8';
       }
+      result = await proxmox.createLxc(node, params);
     } catch (proxErr) {
-      // Proxmox failed — clean up IP and temp instance
       if (ipInfo) {
         await releaseIP(ipInfo.ip).catch(() => {});
         await Instance.deleteOne({ vmid: Number(vmid) }).catch(() => {});
@@ -150,17 +125,18 @@ router.post('/create', auth, async (req, res) => {
 
     const instance = await Instance.findOneAndUpdate(
       { vmid: Number(vmid) },
-      { $set: { status: 'stopped', name, password: rootPassword || '' } },
+      { $set: { status: 'stopped', name, password } },
       { new: true },
     );
 
+    logger.info(`Instance created: ${name} (VMID ${vmid}) by ${req.user.email}`);
     res.status(201).json({ instance, task: result });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', auth, async (req, res, next) => {
   try {
     const instance = await Instance.findOne({ _id: req.params.id, owner: req.user._id });
     if (!instance) return res.status(404).json({ error: 'Instance not found' });
@@ -174,7 +150,7 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', auth, async (req, res, next) => {
   try {
     const instance = await Instance.findOne({ _id: req.params.id, owner: req.user._id });
     if (!instance) return res.status(404).json({ error: 'Instance not found' });
@@ -189,7 +165,7 @@ router.delete('/:id', auth, async (req, res) => {
   }
 });
 
-router.post('/:id/start', auth, async (req, res) => {
+router.post('/:id/start', auth, async (req, res, next) => {
   try {
     const instance = await Instance.findOne({ _id: req.params.id, owner: req.user._id });
     if (!instance) return res.status(404).json({ error: 'Instance not found' });
@@ -204,7 +180,7 @@ router.post('/:id/start', auth, async (req, res) => {
   }
 });
 
-router.post('/:id/stop', auth, async (req, res) => {
+router.post('/:id/stop', auth, async (req, res, next) => {
   try {
     const instance = await Instance.findOne({ _id: req.params.id, owner: req.user._id });
     if (!instance) return res.status(404).json({ error: 'Instance not found' });
@@ -219,7 +195,7 @@ router.post('/:id/stop', auth, async (req, res) => {
   }
 });
 
-router.post('/:id/reboot', auth, async (req, res) => {
+router.post('/:id/reboot', auth, async (req, res, next) => {
   try {
     const instance = await Instance.findOne({ _id: req.params.id, owner: req.user._id });
     if (!instance) return res.status(404).json({ error: 'Instance not found' });
@@ -231,7 +207,7 @@ router.post('/:id/reboot', auth, async (req, res) => {
   }
 });
 
-router.post('/:id/suspend', auth, async (req, res) => {
+router.post('/:id/suspend', auth, async (req, res, next) => {
   try {
     const instance = await Instance.findOne({ _id: req.params.id, owner: req.user._id });
     if (!instance) return res.status(404).json({ error: 'Instance not found' });
@@ -246,7 +222,7 @@ router.post('/:id/suspend', auth, async (req, res) => {
   }
 });
 
-router.post('/:id/resume', auth, async (req, res) => {
+router.post('/:id/resume', auth, async (req, res, next) => {
   try {
     const instance = await Instance.findOne({ _id: req.params.id, owner: req.user._id });
     if (!instance) return res.status(404).json({ error: 'Instance not found' });
@@ -257,11 +233,11 @@ router.post('/:id/resume', auth, async (req, res) => {
 
     res.json({ message: 'Instance resumed', instance });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-router.get('/:id/snapshots', auth, async (req, res) => {
+router.get('/:id/snapshots', auth, async (req, res, next) => {
   try {
     const instance = await Instance.findOne({ _id: req.params.id, owner: req.user._id });
     if (!instance) return res.status(404).json({ error: 'Instance not found' });
@@ -273,7 +249,7 @@ router.get('/:id/snapshots', auth, async (req, res) => {
   }
 });
 
-router.post('/:id/snapshots', auth, async (req, res) => {
+router.post('/:id/snapshots', auth, validate('createSnapshot'), async (req, res, next) => {
   try {
     const instance = await Instance.findOne({ _id: req.params.id, owner: req.user._id });
     if (!instance) return res.status(404).json({ error: 'Instance not found' });
@@ -288,7 +264,7 @@ router.post('/:id/snapshots', auth, async (req, res) => {
   }
 });
 
-router.delete('/:id/snapshots/:snapname', auth, async (req, res) => {
+router.delete('/:id/snapshots/:snapname', auth, async (req, res, next) => {
   try {
     const instance = await Instance.findOne({ _id: req.params.id, owner: req.user._id });
     if (!instance) return res.status(404).json({ error: 'Instance not found' });
@@ -300,7 +276,7 @@ router.delete('/:id/snapshots/:snapname', auth, async (req, res) => {
   }
 });
 
-router.post('/:id/snapshots/:snapname/rollback', auth, async (req, res) => {
+router.post('/:id/snapshots/:snapname/rollback', auth, async (req, res, next) => {
   try {
     const instance = await Instance.findOne({ _id: req.params.id, owner: req.user._id });
     if (!instance) return res.status(404).json({ error: 'Instance not found' });
@@ -312,43 +288,52 @@ router.post('/:id/snapshots/:snapname/rollback', auth, async (req, res) => {
   }
 });
 
-router.put('/:id/resize', auth, async (req, res) => {
+router.put('/:id/resize', auth, validate('resizeInstance'), async (req, res, next) => {
   try {
     const instance = await Instance.findOne({ _id: req.params.id, owner: req.user._id });
     if (!instance) return res.status(404).json({ error: 'Instance not found' });
 
     const { cpus, memory, disk } = req.body;
 
-    if (cpus != null || memory != null) {
-      const updateParams = {};
-      if (cpus != null) {
-        if (cpus < 1 || cpus > 32) return res.status(400).json({ error: 'CPU must be 1–32' });
-        updateParams.cores = cpus;
-      }
-      if (memory != null) {
-        if (memory < 128 || memory > 131072) return res.status(400).json({ error: 'Memory must be 128–131072 MB' });
-        updateParams.memory = memory;
-      }
-      await proxmox.updateLxc(instance.node, instance.vmid, updateParams);
+    let changed = false;
+
+    if (cpus != null && cpus !== instance.cpus) {
+      await proxmox.updateLxc(instance.node, instance.vmid, { cores: cpus });
+      instance.cpus = cpus;
+      changed = true;
+    }
+
+    if (memory != null && memory !== instance.memory) {
+      await proxmox.updateLxc(instance.node, instance.vmid, { memory });
+      instance.memory = memory;
+      changed = true;
     }
 
     if (disk != null) {
-      if (disk < 1 || disk > 1000) return res.status(400).json({ error: 'Disk must be 1–1000 GB' });
-      await proxmox.resizeLxcDisk(instance.node, instance.vmid, disk);
+      if (disk < instance.disk) {
+        return res.status(400).json({ error: 'Disk cannot be shrunk' });
+      }
+      if (disk !== instance.disk) {
+        await proxmox.resizeLxcDisk(instance.node, instance.vmid, disk);
+        instance.disk = disk;
+        changed = true;
+      }
     }
 
-    if (cpus != null) instance.cpus = cpus;
-    if (memory != null) instance.memory = memory;
-    if (disk != null) instance.disk = disk;
+    if (!changed) {
+      return res.status(400).json({ error: 'No changes detected' });
+    }
+
     await instance.save();
 
+    logger.info(`Instance resized: ${instance.name} (VMID ${instance.vmid})`);
     res.json({ message: 'Instance resized', instance });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-router.get('/:id/interfaces', auth, async (req, res) => {
+router.get('/:id/interfaces', auth, async (req, res, next) => {
   try {
     const instance = await Instance.findOne({ _id: req.params.id, owner: req.user._id });
     if (!instance) return res.status(404).json({ error: 'Instance not found' });

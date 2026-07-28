@@ -14,7 +14,7 @@ export default function ResizeModal({ instance, onClose, onResized }) {
     setError('');
 
     if (cpus < 1 || cpus > 32) { setError('CPU cores must be 1–32'); return; }
-    if (memory < 128 || memory > 131072) { setError('Memory must be 128–131072 MB'); return; }
+    if (memory < 64 || memory > 131072) { setError('Memory must be 64–131072 MB'); return; }
     if (disk < 1 || disk > 1000) { setError('Disk must be 1–1000 GB'); return; }
     if (disk < instance.disk) { setError('Disk cannot be shrunk'); return; }
 
@@ -57,9 +57,8 @@ export default function ResizeModal({ instance, onClose, onResized }) {
             <label style={styles.label}><Database size={14} /> Memory (MB)</label>
             <input
               type="number"
-              min={128}
+              min={64}
               max={131072}
-              step={256}
               value={memory}
               onChange={(e) => setMemory(Number(e.target.value))}
               style={styles.input}
