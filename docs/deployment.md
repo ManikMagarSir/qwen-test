@@ -207,6 +207,22 @@ sudo systemctl restart mongod
 
 > **SSH keys**: The backend auto-generates an RSA 4096 keypair at `.ssh/cloud` / `.ssh/cloud.pub` on first start. The **private key** (`.ssh/cloud`) is used by the console WebSocket to SSH into the Proxmox host for `lxc-attach`. The **public key** (`.ssh/cloud.pub`) is injected into every new container during creation. Ensure the Proxmox host has the public key in `~/.ssh/authorized_keys` for console to work.
 
+### Deploy SSH key to Proxmox
+
+```bash
+# From the backend machine (where .ssh/cloud.pub exists)
+ssh-copy-id -i .ssh/cloud.pub root@<proxmox-ip>
+
+# Or manually
+cat .ssh/cloud.pub | ssh root@<proxmox-ip> 'mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys'
+```
+
+### Verify console SSH
+
+```bash
+ssh -i .ssh/cloud root@<proxmox-ip> echo "OK"
+```
+
 ### Production `.env`
 
 ```ini

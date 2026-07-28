@@ -174,7 +174,25 @@ mkdir -p .ssh
 ssh-keygen -t rsa -b 4096 -f .ssh/cloud -N ""
 ```
 
-The public key is injected into new containers via Proxmox's `ssh-public-keys` option during creation.
+### Deploy public key to Proxmox host
+
+The Web Console requires SSH access to the Proxmox host. Copy the public key to `root`'s `authorized_keys`:
+
+```bash
+# Using ssh-copy-id (recommended)
+ssh-copy-id -i .ssh/cloud.pub root@<proxmox-ip>
+
+# Or manually
+cat .ssh/cloud.pub | ssh root@<proxmox-ip> 'mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys'
+```
+
+### Verify SSH access
+
+```bash
+ssh -i .ssh/cloud root@<proxmox-ip> echo "SSH_OK"
+```
+
+The public key is also injected into new containers via Proxmox's `ssh-public-keys` option during creation.
 
 ---
 
