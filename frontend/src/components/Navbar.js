@@ -1,26 +1,33 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogOut } from 'lucide-react';
+
+const pageTitles = {
+  '/dashboard': 'Dashboard',
+  '/create': 'New Container',
+  '/monitoring': 'Monitoring',
+  '/profile': 'Profile',
+};
 
 export default function Navbar() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
+  const location = useLocation();
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+  const title = pageTitles[location.pathname] || 'Cloud Manager';
 
   return (
     <nav style={styles.nav}>
       <div style={styles.inner}>
-        <div style={{ flex: 1 }} />
+        <div style={styles.left}>
+          <h2 style={styles.title}>{title}</h2>
+        </div>
         <div style={styles.right}>
-          <span style={styles.userText}>{user?.name || user?.email}</span>
-          <button onClick={handleLogout} style={styles.logoutBtn} title="Sign out">
-            <LogOut size={16} />
-          </button>
+          <div style={styles.userBadge}>
+            <div style={styles.avatar}>
+              {(user?.name || user?.email || 'U')[0].toUpperCase()}
+            </div>
+            <span style={styles.userName}>{user?.name || user?.email}</span>
+          </div>
         </div>
       </div>
     </nav>
@@ -35,36 +42,57 @@ const styles = {
     left: 0,
     zIndex: 80,
     background: 'rgba(15, 23, 42, 0.85)',
-    backdropFilter: 'blur(12px)',
-    borderBottom: '1px solid var(--color-border)',
-    marginLeft: 'inherit',
+    backdropFilter: 'blur(16px)',
+    WebkitBackdropFilter: 'blur(16px)',
+    borderBottom: '1px solid rgba(51, 65, 85, 0.3)',
   },
   inner: {
     height: '64px',
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    padding: '0 24px',
+    justifyContent: 'space-between',
+    padding: '0 28px',
+  },
+  left: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+  },
+  title: {
+    fontFamily: 'var(--font-heading)',
+    fontSize: '1.1rem',
+    fontWeight: 600,
+    color: 'var(--color-foreground)',
   },
   right: {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
   },
-  userText: {
-    color: '#94A3B8',
-    fontSize: '0.88rem',
+  userBadge: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '6px 12px',
+    borderRadius: 'var(--radius-sm)',
+    background: 'rgba(255, 255, 255, 0.03)',
+    border: '1px solid rgba(51, 65, 85, 0.3)',
   },
-  logoutBtn: {
+  avatar: {
+    width: '28px',
+    height: '28px',
+    borderRadius: '6px',
+    background: 'rgba(34, 197, 94, 0.15)',
+    color: '#22C55E',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    width: '36px',
-    height: '36px',
-    borderRadius: 'var(--radius-sm)',
-    border: '1px solid var(--color-border)',
-    background: 'transparent',
-    color: '#94A3B8',
-    cursor: 'pointer',
+    fontSize: '0.78rem',
+    fontWeight: 700,
+  },
+  userName: {
+    color: '#CBD5E1',
+    fontSize: '0.85rem',
+    fontWeight: 500,
   },
 };

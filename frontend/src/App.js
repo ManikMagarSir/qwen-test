@@ -9,6 +9,7 @@ import Monitoring from './components/Monitoring';
 import Profile from './components/Profile';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
+import { Cloud } from 'lucide-react';
 import './styles.css';
 
 function ProtectedRoute({ children }) {
@@ -49,8 +50,11 @@ function PublicRoute({ children }) {
 function LoadingScreen() {
   return (
     <div style={loadingStyles.container}>
+      <div style={loadingStyles.logoWrap}>
+        <Cloud size={32} color="#22C55E" />
+      </div>
       <div style={loadingStyles.spinner} />
-      <p style={{ color: 'var(--color-border)', marginTop: '16px' }}>Loading...</p>
+      <p style={loadingStyles.text}>Loading Cloud Manager...</p>
     </div>
   );
 }
@@ -63,14 +67,30 @@ const loadingStyles = {
     alignItems: 'center',
     justifyContent: 'center',
     background: 'var(--color-background)',
+    gap: '20px',
+  },
+  logoWrap: {
+    width: '56px',
+    height: '56px',
+    borderRadius: 'var(--radius-lg)',
+    background: 'rgba(34, 197, 94, 0.1)',
+    border: '1px solid rgba(34, 197, 94, 0.2)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    animation: 'breathe 2s ease-in-out infinite',
   },
   spinner: {
-    width: '32px',
-    height: '32px',
-    border: '3px solid var(--color-border)',
+    width: '24px',
+    height: '24px',
+    border: '2px solid var(--color-border)',
     borderTopColor: 'var(--color-accent)',
     borderRadius: '50%',
     animation: 'spin 0.8s linear infinite',
+  },
+  text: {
+    color: '#64748B',
+    fontSize: '0.88rem',
   },
 };
 

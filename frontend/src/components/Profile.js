@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
-import { User, Mail, Shield, Calendar, Loader } from 'lucide-react';
+import { User, Mail, Shield, Calendar, Loader, Save, Lock } from 'lucide-react';
 
 export default function Profile() {
   const { user, login: refreshUser } = useAuth();
@@ -16,8 +16,7 @@ export default function Profile() {
     setLoading(true);
     setMessage({ type: '', text: '' });
     try {
-      const res = await api.put('/profile', { name });
-      refreshUser(res.data.user.email, res.data.user.password);
+      await api.put('/profile', { name });
       window.location.reload();
       setMessage({ type: 'success', text: 'Profile updated' });
     } catch (err) {
@@ -36,7 +35,7 @@ export default function Profile() {
     setLoading(true);
     setMessage({ type: '', text: '' });
     try {
-      const res = await api.put('/profile', { currentPassword, newPassword });
+      await api.put('/profile', { currentPassword, newPassword });
       setMessage({ type: 'success', text: 'Password changed' });
       setCurrentPassword('');
       setNewPassword('');
@@ -53,8 +52,10 @@ export default function Profile() {
 
   return (
     <div style={styles.container}>
-      <h1 style={styles.heading}>Profile</h1>
-      <p style={styles.sub}>Manage your account settings</p>
+      <div style={styles.header}>
+        <h1 style={styles.heading}>Profile</h1>
+        <p style={styles.sub}>Manage your account settings</p>
+      </div>
 
       {message.text && (
         <div style={{
@@ -68,51 +69,57 @@ export default function Profile() {
       )}
 
       <div style={styles.grid}>
-        {/* Info card */}
-        <div style={styles.card}>
-          <h2 style={styles.cardTitle}>Account Info</h2>
-          <div style={styles.infoRow}>
-            <User size={16} color="#64748B" />
-            <div>
-              <span style={styles.infoLabel}>Name</span>
-              <span style={styles.infoValue}>{user?.name}</span>
-            </div>
+        <div className="stagger-1" style={styles.card}>
+          <div style={styles.cardHeader}>
+            <User size={16} color="#22C55E" />
+            <h2 style={styles.cardTitle}>Account Info</h2>
           </div>
-          <div style={styles.infoRow}>
-            <Mail size={16} color="#64748B" />
-            <div>
-              <span style={styles.infoLabel}>Email</span>
-              <span style={styles.infoValue}>{user?.email}</span>
+          <div style={styles.infoRows}>
+            <div style={styles.infoRow}>
+              <div style={styles.infoIcon}><User size={14} color="#64748B" /></div>
+              <div>
+                <span style={styles.infoLabel}>Name</span>
+                <span style={styles.infoValue}>{user?.name}</span>
+              </div>
             </div>
-          </div>
-          <div style={styles.infoRow}>
-            <Shield size={16} color="#64748B" />
-            <div>
-              <span style={styles.infoLabel}>Role</span>
-              <span style={{
-                ...styles.roleBadge,
-                background: user?.role === 'admin' ? 'rgba(34,197,94,0.15)' : 'rgba(59,130,246,0.15)',
-                color: user?.role === 'admin' ? '#22C55E' : '#60A5FA',
-              }}>
-                {user?.role}
-              </span>
+            <div style={styles.infoRow}>
+              <div style={styles.infoIcon}><Mail size={14} color="#64748B" /></div>
+              <div>
+                <span style={styles.infoLabel}>Email</span>
+                <span style={styles.infoValue}>{user?.email}</span>
+              </div>
             </div>
-          </div>
-          <div style={styles.infoRow}>
-            <Calendar size={16} color="#64748B" />
-            <div>
-              <span style={styles.infoLabel}>Member since</span>
-              <span style={styles.infoValue}>{created}</span>
+            <div style={styles.infoRow}>
+              <div style={styles.infoIcon}><Shield size={14} color="#64748B" /></div>
+              <div>
+                <span style={styles.infoLabel}>Role</span>
+                <span style={{
+                  ...styles.roleBadge,
+                  background: user?.role === 'admin' ? 'rgba(34,197,94,0.15)' : 'rgba(59,130,246,0.15)',
+                  color: user?.role === 'admin' ? '#22C55E' : '#60A5FA',
+                }}>
+                  {user?.role}
+                </span>
+              </div>
+            </div>
+            <div style={{ ...styles.infoRow, borderBottom: 'none' }}>
+              <div style={styles.infoIcon}><Calendar size={14} color="#64748B" /></div>
+              <div>
+                <span style={styles.infoLabel}>Member since</span>
+                <span style={styles.infoValue}>{created}</span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Edit name */}
-        <div style={styles.card}>
-          <h2 style={styles.cardTitle}>Edit Profile</h2>
+        <div className="stagger-2" style={styles.card}>
+          <div style={styles.cardHeader}>
+            <Save size={16} color="#22C55E" />
+            <h2 style={styles.cardTitle}>Edit Profile</h2>
+          </div>
           <form onSubmit={handleProfileUpdate}>
             <div style={styles.field}>
-              <label style={styles.label}>Name</label>
+              <label style={styles.label}>Full Name</label>
               <input
                 style={styles.input}
                 value={name}
@@ -121,16 +128,21 @@ export default function Profile() {
                 required
               />
             </div>
-            <button type="submit" style={styles.btn} disabled={loading}>
-              {loading && <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} />}
-              {loading ? 'Saving...' : 'Save Changes'}
+            <button type="submit" className="btn-primary" style={styles.btn}>
+              {loading ? (
+                <><Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> Saving...</>
+              ) : (
+                <><Save size={14} /> Save Changes</>
+              )}
             </button>
           </form>
         </div>
 
-        {/* Change password */}
-        <div style={styles.card}>
-          <h2 style={styles.cardTitle}>Change Password</h2>
+        <div className="stagger-3" style={styles.card}>
+          <div style={styles.cardHeader}>
+            <Lock size={16} color="#F59E0B" />
+            <h2 style={styles.cardTitle}>Change Password</h2>
+          </div>
           <form onSubmit={handlePasswordChange}>
             <div style={styles.field}>
               <label style={styles.label}>Current Password</label>
@@ -153,9 +165,12 @@ export default function Profile() {
                 placeholder="Min 6 characters"
               />
             </div>
-            <button type="submit" style={styles.btn} disabled={loading}>
-              {loading && <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} />}
-              {loading ? 'Updating...' : 'Change Password'}
+            <button type="submit" className="btn-primary" style={{ ...styles.btn, background: '#F59E0B', color: '#020617' }}>
+              {loading ? (
+                <><Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> Updating...</>
+              ) : (
+                <><Lock size={14} /> Change Password</>
+              )}
             </button>
           </form>
         </div>
@@ -171,6 +186,9 @@ const styles = {
     padding: '32px 24px',
     animation: 'fadeIn 0.3s ease',
   },
+  header: {
+    marginBottom: '28px',
+  },
   heading: {
     fontFamily: 'var(--font-heading)',
     fontSize: '1.5rem',
@@ -180,7 +198,6 @@ const styles = {
     color: '#64748B',
     fontSize: '0.88rem',
     marginTop: '4px',
-    marginBottom: '24px',
   },
   msg: {
     padding: '10px 14px',
@@ -194,24 +211,48 @@ const styles = {
     gap: '16px',
   },
   card: {
-    background: 'var(--color-muted)',
-    border: '1px solid var(--color-border)',
+    background: 'rgba(26, 30, 47, 0.6)',
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
+    border: '1px solid rgba(51, 65, 85, 0.4)',
     borderRadius: 'var(--radius-md)',
     padding: '24px',
+    animation: 'slideUp 0.4s ease both',
+  },
+  cardHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    marginBottom: '20px',
+    paddingBottom: '12px',
+    borderBottom: '1px solid rgba(51, 65, 85, 0.3)',
   },
   cardTitle: {
     fontSize: '1rem',
     fontWeight: 600,
     color: 'var(--color-foreground)',
-    marginBottom: '20px',
     fontFamily: 'var(--font-heading)',
+  },
+  infoRows: {
+    display: 'flex',
+    flexDirection: 'column',
   },
   infoRow: {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
     padding: '10px 0',
-    borderBottom: '1px solid rgba(51, 65, 85, 0.3)',
+    borderBottom: '1px solid rgba(51, 65, 85, 0.2)',
+  },
+  infoIcon: {
+    width: '32px',
+    height: '32px',
+    borderRadius: 'var(--radius-sm)',
+    background: 'rgba(100, 116, 139, 0.1)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
   infoLabel: {
     display: 'block',
@@ -250,7 +291,7 @@ const styles = {
     padding: '10px 12px',
     borderRadius: 'var(--radius-sm)',
     border: '1px solid var(--color-border)',
-    background: 'var(--color-background)',
+    background: 'rgba(2, 6, 23, 0.5)',
     color: 'var(--color-foreground)',
     fontSize: '0.88rem',
     outline: 'none',
@@ -262,12 +303,6 @@ const styles = {
     gap: '8px',
     width: '100%',
     padding: '10px',
-    borderRadius: 'var(--radius-sm)',
-    border: 'none',
-    background: 'var(--color-accent)',
-    color: '#020617',
-    fontWeight: 600,
     fontSize: '0.88rem',
-    cursor: 'pointer',
   },
 };

@@ -20,7 +20,9 @@ export default class ErrorBoundary extends React.Component {
       if (this.props.fallback) return this.props.fallback;
       return (
         <div style={styles.container}>
-          <AlertTriangle size={40} color="#EF4444" />
+          <div style={styles.iconWrap}>
+            <AlertTriangle size={40} color="#EF4444" />
+          </div>
           <h2 style={styles.heading}>Something went wrong</h2>
           <p style={styles.text}>{this.state.error?.message || 'An unexpected error occurred'}</p>
           <button
@@ -28,7 +30,7 @@ export default class ErrorBoundary extends React.Component {
               this.setState({ hasError: false, error: null });
               window.location.reload();
             }}
-            style={styles.btn}
+            className="btn-primary"
           >
             <RefreshCw size={14} /> Reload
           </button>
@@ -47,6 +49,17 @@ const styles = {
     justifyContent: 'center',
     padding: '60px 20px',
     textAlign: 'center',
+    animation: 'fadeIn 0.3s ease',
+  },
+  iconWrap: {
+    width: '72px',
+    height: '72px',
+    borderRadius: 'var(--radius-xl)',
+    background: 'rgba(239, 68, 68, 0.1)',
+    border: '1px solid rgba(239, 68, 68, 0.2)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   heading: {
     fontFamily: 'var(--font-heading)',
@@ -58,19 +71,6 @@ const styles = {
     color: '#64748B',
     fontSize: '0.9rem',
     marginTop: '8px',
-  },
-  btn: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    marginTop: '20px',
-    background: 'var(--color-accent)',
-    color: '#020617',
-    border: 'none',
-    padding: '10px 20px',
-    borderRadius: 'var(--radius-sm)',
-    fontWeight: 600,
-    fontSize: '0.88rem',
-    cursor: 'pointer',
+    marginBottom: '24px',
   },
 };

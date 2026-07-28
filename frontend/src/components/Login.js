@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Cloud, LogIn } from 'lucide-react';
+import { Cloud, LogIn, Server, Globe, Terminal, Camera } from 'lucide-react';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -25,83 +25,114 @@ export default function Login() {
     }
   };
 
+  const features = [
+    { icon: Server, text: 'LXC Container Management' },
+    { icon: Globe, text: 'Static IP Allocation' },
+    { icon: Camera, text: 'Snapshot & Rollback' },
+    { icon: Terminal, text: 'Web-based Console' },
+  ];
+
   return (
     <div style={styles.page}>
+      <div className="mesh-bg" />
+      <div style={styles.particles}>
+        {[...Array(20)].map((_, i) => (
+          <div
+            key={i}
+            style={{
+              ...styles.dot,
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 8}s`,
+              animationDuration: `${4 + Math.random() * 6}s`,
+              width: `${2 + Math.random() * 3}px`,
+              height: `${2 + Math.random() * 3}px`,
+            }}
+          />
+        ))}
+      </div>
+
       <div className="auth-sidebar" style={styles.sidebar}>
         <div style={styles.sidebarContent}>
-          <Cloud size={48} color="#22C55E" />
+          <div style={styles.logoWrap}>
+            <Cloud size={40} color="#22C55E" />
+          </div>
           <h1 style={styles.sidebarTitle}>Cloud Manager</h1>
           <p style={styles.sidebarDesc}>
-            Manage your Proxmox infrastructure through a simple, multi-tenant interface.
+            Enterprise-grade infrastructure management. Deploy, monitor, and scale your containers with confidence.
           </p>
           <div style={styles.features}>
-            <Feature text="Create and manage LXC containers" />
-            <Feature text="Static IP allocation" />
-            <Feature text="Snapshot management" />
-            <Feature text="Web-based console access" />
+            {features.map((f, i) => (
+              <div key={i} style={styles.featureRow}>
+                <div style={styles.featureIcon}>
+                  <f.icon size={14} color="#22C55E" />
+                </div>
+                <span style={styles.featureText}>{f.text}</span>
+              </div>
+            ))}
+          </div>
+          <div style={styles.trustRow}>
+            <span style={styles.trustDot} />
+            <span style={styles.trustText}>99.9% Uptime SLA</span>
           </div>
         </div>
       </div>
 
       <div style={styles.formWrap}>
         <div style={styles.formContainer}>
-          <h2 style={styles.formTitle}>Welcome back</h2>
-          <p style={styles.formSub}>Sign in to your account</p>
-
-          {error && <div style={styles.error}>{error}</div>}
-
-          <form onSubmit={handleSubmit} style={styles.form}>
-            <div style={styles.field}>
-              <label htmlFor="email" style={styles.label}>Email</label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                placeholder="you@example.com"
-                style={styles.input}
-              />
+          <div style={styles.formCard}>
+            <div style={styles.formHeader}>
+              <h2 style={styles.formTitle}>Welcome back</h2>
+              <p style={styles.formSub}>Sign in to your account to continue</p>
             </div>
-            <div style={styles.field}>
-              <label htmlFor="password" style={styles.label}>Password</label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                placeholder="Enter your password"
-                style={styles.input}
-              />
-            </div>
-            <button type="submit" disabled={loading} style={styles.button}>
-              {loading ? (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
-                  <span style={spinnerStyle} /> Signing in...
-                </span>
-              ) : (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
-                  <LogIn size={16} /> Sign In
-                </span>
-              )}
-            </button>
-          </form>
 
-          <p style={styles.footer}>
-            Don't have an account? <Link to="/register" style={styles.link}>Create one</Link>
-          </p>
+            {error && <div style={styles.error}>{error}</div>}
+
+            <form onSubmit={handleSubmit}>
+              <div style={styles.field}>
+                <label htmlFor="email" style={styles.label}>Email</label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  placeholder="you@example.com"
+                  style={styles.input}
+                />
+              </div>
+              <div style={styles.field}>
+                <label htmlFor="password" style={styles.label}>Password</label>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  placeholder="Enter your password"
+                  style={styles.input}
+                />
+              </div>
+              <button type="submit" disabled={loading} className="btn-primary" style={styles.button}>
+                {loading ? (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                    <span style={spinnerStyle} /> Signing in...
+                  </span>
+                ) : (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                    <LogIn size={16} /> Sign In
+                  </span>
+                )}
+              </button>
+            </form>
+
+            <p style={styles.footer}>
+              Don't have an account?{' '}
+              <Link to="/register" style={styles.link}>Create one</Link>
+            </p>
+          </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function Feature({ text }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#94A3B8', fontSize: '0.9rem' }}>
-      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E', flexShrink: 0 }} />
-      {text}
     </div>
   );
 }
@@ -109,8 +140,8 @@ function Feature({ text }) {
 const spinnerStyle = {
   width: '16px',
   height: '16px',
-  border: '2px solid rgba(255,255,255,0.3)',
-  borderTopColor: '#fff',
+  border: '2px solid rgba(2, 6, 23, 0.3)',
+  borderTopColor: '#020617',
   borderRadius: '50%',
   animation: 'spin 0.6s linear infinite',
   display: 'inline-block',
@@ -121,20 +152,49 @@ const styles = {
     minHeight: '100dvh',
     display: 'flex',
     background: 'var(--color-background)',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  particles: {
+    position: 'fixed',
+    inset: 0,
+    zIndex: 1,
+    pointerEvents: 'none',
+  },
+  dot: {
+    position: 'absolute',
+    borderRadius: '50%',
+    background: 'rgba(34, 197, 94, 0.3)',
+    animation: 'float 6s ease-in-out infinite',
   },
   sidebar: {
     display: 'none',
     width: '440px',
-    background: 'var(--color-muted)',
-    padding: '48px',
+    background: 'rgba(15, 23, 42, 0.6)',
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
+    padding: '56px 48px',
     flexDirection: 'column',
     justifyContent: 'center',
-    borderRight: '1px solid var(--color-border)',
+    borderRight: '1px solid rgba(51, 65, 85, 0.4)',
+    position: 'relative',
+    zIndex: 2,
   },
   sidebarContent: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '20px',
+    gap: '24px',
+  },
+  logoWrap: {
+    width: '64px',
+    height: '64px',
+    borderRadius: 'var(--radius-lg)',
+    background: 'rgba(34, 197, 94, 0.1)',
+    border: '1px solid rgba(34, 197, 94, 0.2)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    animation: 'breathe 3s ease-in-out infinite',
   },
   sidebarTitle: {
     fontFamily: 'var(--font-heading)',
@@ -150,8 +210,49 @@ const styles = {
   features: {
     display: 'flex',
     flexDirection: 'column',
+    gap: '14px',
+  },
+  featureRow: {
+    display: 'flex',
+    alignItems: 'center',
     gap: '12px',
+  },
+  featureIcon: {
+    width: '32px',
+    height: '32px',
+    borderRadius: 'var(--radius-sm)',
+    background: 'rgba(34, 197, 94, 0.08)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  featureText: {
+    color: '#CBD5E1',
+    fontSize: '0.9rem',
+  },
+  trustRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
     marginTop: '8px',
+    padding: '12px 16px',
+    borderRadius: 'var(--radius-sm)',
+    background: 'rgba(34, 197, 94, 0.04)',
+    border: '1px solid rgba(34, 197, 94, 0.1)',
+  },
+  trustDot: {
+    width: 8,
+    height: 8,
+    borderRadius: '50%',
+    background: '#22C55E',
+    flexShrink: 0,
+    animation: 'glowPulse 2s ease-in-out infinite',
+  },
+  trustText: {
+    color: '#22C55E',
+    fontSize: '0.82rem',
+    fontWeight: 500,
   },
   formWrap: {
     flex: 1,
@@ -159,10 +260,24 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     padding: '24px',
+    position: 'relative',
+    zIndex: 2,
   },
   formContainer: {
     width: '100%',
-    maxWidth: '400px',
+    maxWidth: '420px',
+  },
+  formCard: {
+    background: 'rgba(15, 23, 42, 0.6)',
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
+    border: '1px solid rgba(51, 65, 85, 0.5)',
+    borderRadius: 'var(--radius-xl)',
+    padding: '36px',
+    animation: 'fadeIn 0.5s ease',
+  },
+  formHeader: {
+    marginBottom: '28px',
   },
   formTitle: {
     fontFamily: 'var(--font-heading)',
@@ -171,9 +286,8 @@ const styles = {
     marginBottom: '6px',
   },
   formSub: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: '0.9rem',
-    marginBottom: '28px',
   },
   error: {
     background: 'rgba(239, 68, 68, 0.1)',
@@ -182,45 +296,38 @@ const styles = {
     padding: '12px 16px',
     borderRadius: 'var(--radius-sm)',
     fontSize: '0.88rem',
-    marginBottom: '16px',
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '18px',
+    marginBottom: '20px',
+    animation: 'slideDown 0.2s ease',
   },
   field: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '6px',
+    marginBottom: '18px',
   },
   label: {
+    display: 'block',
     color: '#94A3B8',
     fontSize: '0.85rem',
     fontWeight: 500,
+    marginBottom: '6px',
   },
   input: {
+    width: '100%',
     padding: '12px 14px',
     borderRadius: 'var(--radius-sm)',
     border: '1px solid var(--color-border)',
-    background: 'var(--color-muted)',
+    background: 'rgba(2, 6, 23, 0.5)',
     color: 'var(--color-foreground)',
     fontSize: '0.95rem',
+    outline: 'none',
   },
   button: {
+    width: '100%',
+    marginTop: '8px',
     padding: '12px',
-    borderRadius: 'var(--radius-sm)',
-    border: 'none',
-    background: 'var(--color-accent)',
-    color: '#020617',
     fontSize: '0.95rem',
-    fontWeight: 600,
-    cursor: 'pointer',
-    marginTop: '4px',
   },
   footer: {
     textAlign: 'center',
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: '0.88rem',
     marginTop: '24px',
   },
@@ -229,5 +336,3 @@ const styles = {
     fontWeight: 500,
   },
 };
-
-

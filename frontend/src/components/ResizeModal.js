@@ -13,9 +13,9 @@ export default function ResizeModal({ instance, onClose, onResized }) {
     e.preventDefault();
     setError('');
 
-    if (cpus < 1 || cpus > 32) { setError('CPU cores must be 1–32'); return; }
-    if (memory < 64 || memory > 131072) { setError('Memory must be 64–131072 MB'); return; }
-    if (disk < 1 || disk > 1000) { setError('Disk must be 1–1000 GB'); return; }
+    if (cpus < 1 || cpus > 32) { setError('CPU cores must be 1\u201332'); return; }
+    if (memory < 64 || memory > 131072) { setError('Memory must be 64\u2013131072 MB'); return; }
+    if (disk < 1 || disk > 1000) { setError('Disk must be 1\u20131000 GB'); return; }
     if (disk < instance.disk) { setError('Disk cannot be shrunk'); return; }
 
     setLoading(true);
@@ -37,7 +37,7 @@ export default function ResizeModal({ instance, onClose, onResized }) {
           <h3 style={styles.title}>Resize Container</h3>
           <button onClick={onClose} style={styles.closeBtn}><X size={16} /></button>
         </div>
-        <p style={styles.sub}>Adjust resources for <strong>{instance.name}</strong></p>
+        <p style={styles.sub}>Adjust resources for <strong style={{ color: '#CBD5E1' }}>{instance.name}</strong></p>
 
         {error && <div style={styles.error}>{error}</div>}
 
@@ -45,9 +45,7 @@ export default function ResizeModal({ instance, onClose, onResized }) {
           <div style={styles.field}>
             <label style={styles.label}><Cpu size={14} /> CPU Cores</label>
             <input
-              type="number"
-              min={1}
-              max={32}
+              type="number" min={1} max={32}
               value={cpus}
               onChange={(e) => setCpus(Number(e.target.value))}
               style={styles.input}
@@ -56,9 +54,7 @@ export default function ResizeModal({ instance, onClose, onResized }) {
           <div style={styles.field}>
             <label style={styles.label}><Database size={14} /> Memory (MB)</label>
             <input
-              type="number"
-              min={64}
-              max={131072}
+              type="number" min={64} max={131072}
               value={memory}
               onChange={(e) => setMemory(Number(e.target.value))}
               style={styles.input}
@@ -68,9 +64,7 @@ export default function ResizeModal({ instance, onClose, onResized }) {
           <div style={styles.field}>
             <label style={styles.label}><HardDrive size={14} /> Disk (GB)</label>
             <input
-              type="number"
-              min={1}
-              max={1000}
+              type="number" min={1} max={1000}
               value={disk}
               onChange={(e) => setDisk(Number(e.target.value))}
               style={styles.input}
@@ -78,7 +72,7 @@ export default function ResizeModal({ instance, onClose, onResized }) {
             <span style={styles.hint}>Min {instance.disk} GB (cannot shrink)</span>
           </div>
 
-          <button type="submit" disabled={loading} style={styles.submitBtn}>
+          <button type="submit" disabled={loading} className="btn-primary" style={styles.submitBtn}>
             {loading && <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} />}
             {loading ? 'Resizing...' : 'Apply Changes'}
           </button>
@@ -94,20 +88,25 @@ const styles = {
     inset: 0,
     zIndex: 200,
     background: 'rgba(2, 6, 23, 0.7)',
-    backdropFilter: 'blur(4px)',
+    backdropFilter: 'blur(8px)',
+    WebkitBackdropFilter: 'blur(8px)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     padding: '20px',
+    animation: 'fadeIn 0.2s ease',
   },
   modal: {
-    background: 'var(--color-muted)',
-    border: '1px solid var(--color-border)',
+    background: 'rgba(26, 30, 47, 0.95)',
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
+    border: '1px solid rgba(51, 65, 85, 0.5)',
     borderRadius: 'var(--radius-lg)',
     padding: '28px',
     width: '100%',
     maxWidth: '420px',
-    animation: 'fadeIn 0.2s ease',
+    animation: 'scaleIn 0.2s ease',
+    boxShadow: 'var(--shadow-lg)',
   },
   header: {
     display: 'flex',
@@ -128,6 +127,7 @@ const styles = {
     padding: '6px',
     cursor: 'pointer',
     display: 'flex',
+    transition: 'all var(--transition-fast)',
   },
   sub: {
     color: '#64748B',
@@ -142,6 +142,7 @@ const styles = {
     borderRadius: 'var(--radius-sm)',
     fontSize: '0.82rem',
     marginBottom: '16px',
+    animation: 'slideDown 0.2s ease',
   },
   field: {
     marginBottom: '18px',
@@ -160,7 +161,7 @@ const styles = {
     padding: '10px 12px',
     borderRadius: 'var(--radius-sm)',
     border: '1px solid var(--color-border)',
-    background: 'var(--color-background)',
+    background: 'rgba(2, 6, 23, 0.5)',
     color: 'var(--color-foreground)',
     fontSize: '0.9rem',
     fontFamily: 'var(--font-heading)',
@@ -179,13 +180,7 @@ const styles = {
     gap: '8px',
     width: '100%',
     padding: '11px',
-    borderRadius: 'var(--radius-sm)',
-    border: 'none',
-    background: 'var(--color-accent)',
-    color: '#020617',
-    fontWeight: 600,
     fontSize: '0.9rem',
-    cursor: 'pointer',
     marginTop: '8px',
   },
 };

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Activity, Cpu, HardDrive, MemoryStick, Clock, Loader } from 'lucide-react';
+import { Activity, Cpu, HardDrive, MemoryStick, Clock, Loader, Server, Globe } from 'lucide-react';
 
 const WS_BASE = process.env.REACT_APP_WS_URL || `ws://${window.location.hostname}:5000`;
 
@@ -63,9 +63,14 @@ export default function Monitoring() {
     return (
       <div style={styles.container}>
         <h1 style={styles.heading}>Monitoring</h1>
+        <div style={styles.statsGrid}>
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} style={{ height: '80px', borderRadius: 'var(--radius-md)', background: 'var(--color-muted)', border: '1px solid var(--color-border)', animation: 'pulse 2s ease-in-out infinite' }} />
+          ))}
+        </div>
         <div style={styles.grid}>
           {[1, 2, 3].map((i) => (
-            <div key={i} style={{ ...styles.card, padding: '24px', animation: 'pulse 2s ease-in-out infinite' }}>
+            <div key={i} style={{ ...styles.cardSkeleton, animation: 'pulse 2s ease-in-out infinite' }}>
               <div style={{ height: '16px', background: '#1E293B', borderRadius: '4px', width: '60%', marginBottom: '12px' }} />
               <div style={{ height: '10px', background: '#1E293B', borderRadius: '4px', width: '90%', marginBottom: '8px' }} />
               <div style={{ height: '10px', background: '#1E293B', borderRadius: '4px', width: '70%' }} />
@@ -110,7 +115,7 @@ export default function Monitoring() {
     return (
       <div style={styles.barWrap}>
         <div style={styles.barBg}>
-          <div style={{ ...styles.barFill, width: `${pct}%`, background: color }} />
+          <div style={{ ...styles.barFill, width: `${pct}%`, background: color, boxShadow: `0 0 6px ${color}40` }} />
         </div>
         <span style={styles.barNum}>{pct.toFixed(1)}%</span>
       </div>
@@ -118,60 +123,73 @@ export default function Monitoring() {
   }
 
   const runningCount = instances.filter((i) => i.status === 'running').length;
+  const totalCpus = instances.reduce((s, i) => s + (i.cpus || 0), 0);
+  const totalMem = instances.reduce((s, i) => s + (i.memory || 0), 0);
 
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <div>
-          <h1 style={styles.heading}>Monitoring</h1>
-          <p style={styles.sub}>
-            {instances.length} container{instances.length !== 1 ? 's' : ''}
-            {runningCount > 0 && ` \u00B7 ${runningCount} running`}
-            <span style={{ color: '#22C55E', fontSize: '0.78rem', marginLeft: '12px' }}>
-              live
-            </span>
-          </p>
-        </div>
+        <h1 style={styles.heading}>Monitoring</h1>
+        <p style={styles.sub}>
+          {instances.length} container{instances.length !== 1 ? 's' : ''}
+          {runningCount > 0 && ` \u00B7 ${runningCount} running`}
+          <span style={styles.liveBadge}>
+            <span style={styles.liveDot} />
+            live
+          </span>
+        </p>
       </div>
 
-      <div style={styles.summaryRow}>
-        <div style={styles.summaryItem}>
-          <span style={styles.summaryVal}>{instances.length}</span>
-          <span style={styles.summaryLabel}>Total</span>
+      <div style={styles.statsGrid}>
+        <div className="stagger-1" style={styles.statCard}>
+          <div style={styles.statTop}>
+            <span style={styles.statVal}>{instances.length}</span>
+            <Server size={16} color="#3B82F6" />
+          </div>
+          <span style={styles.statLabel}>Total</span>
         </div>
-        <div style={styles.summaryItem}>
-          <span style={{ ...styles.summaryVal, color: '#22C55E' }}>{runningCount}</span>
-          <span style={styles.summaryLabel}>Running</span>
+        <div className="stagger-2" style={styles.statCard}>
+          <div style={styles.statTop}>
+            <span style={{ ...styles.statVal, color: '#22C55E' }}>{runningCount}</span>
+            <Activity size={16} color="#22C55E" />
+          </div>
+          <span style={styles.statLabel}>Running</span>
         </div>
-        <div style={styles.summaryItem}>
-          <span style={styles.summaryVal}>
-            {instances.reduce((s, i) => s + (i.cpus || 0), 0)}
-          </span>
-          <span style={styles.summaryLabel}>CPU Cores</span>
+        <div className="stagger-3" style={styles.statCard}>
+          <div style={styles.statTop}>
+            <span style={styles.statVal}>{totalCpus}</span>
+            <Cpu size={16} color="#8B5CF6" />
+          </div>
+          <span style={styles.statLabel}>CPU Cores</span>
         </div>
-        <div style={styles.summaryItem}>
-          <span style={styles.summaryVal}>
-            {Math.round(instances.reduce((s, i) => s + (i.memory || 0), 0) / 1024 * 10) / 10}GB
-          </span>
-          <span style={styles.summaryLabel}>Memory</span>
+        <div className="stagger-4" style={styles.statCard}>
+          <div style={styles.statTop}>
+            <span style={styles.statVal}>
+              {totalMem >= 1024 ? `${(totalMem / 1024).toFixed(1)}GB` : `${totalMem}MB`}
+            </span>
+            <MemoryStick size={16} color="#F59E0B" />
+          </div>
+          <span style={styles.statLabel}>Memory</span>
         </div>
       </div>
 
       {instances.length === 0 ? (
-        <div style={styles.empty}>
-          <Activity size={40} color="#334155" />
+        <div className="stagger-5" style={styles.empty}>
+          <div style={styles.emptyIcon}>
+            <Activity size={40} color="#334155" />
+          </div>
           <p style={{ color: '#64748B', marginTop: '12px' }}>No containers to monitor.</p>
         </div>
       ) : (
         <div style={styles.grid}>
-          {instances.map((inst) => {
+          {instances.map((inst, i) => {
             const d = details[inst._id];
             const mem = d?.memory || {};
             const swap = d?.swap || {};
             const disk = d?.disk || {};
 
             return (
-              <div key={inst._id} style={styles.card}>
+              <div key={inst._id} className={`stagger-${(i % 8) + 1}`} style={styles.card}>
                 <div style={styles.cardHeader}>
                   <div style={styles.cardTitleRow}>
                     <span style={styles.cardName}>{inst.name}</span>
@@ -186,7 +204,10 @@ export default function Monitoring() {
                       {inst.status}
                     </span>
                   </div>
-                  <span style={styles.cardIp}>{inst.ip || '-'}</span>
+                  <span style={styles.cardIp}>
+                    <Globe size={11} color="#64748B" />
+                    {inst.ip || '-'}
+                  </span>
                 </div>
 
                 <div style={styles.specRow}>
@@ -256,32 +277,68 @@ const styles = {
     color: '#64748B',
     fontSize: '0.88rem',
     marginTop: '4px',
-  },
-  summaryRow: {
     display: 'flex',
-    gap: '24px',
-    marginBottom: '24px',
-    padding: '16px 20px',
-    background: 'var(--color-muted)',
-    borderRadius: 'var(--radius-md)',
-    border: '1px solid var(--color-border)',
+    alignItems: 'center',
+    gap: '8px',
   },
-  summaryItem: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '2px',
-  },
-  summaryVal: {
+  liveBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '5px',
+    padding: '2px 10px',
+    borderRadius: '20px',
+    background: 'rgba(34, 197, 94, 0.1)',
+    color: '#22C55E',
+    fontSize: '0.72rem',
+    fontWeight: 600,
     fontFamily: 'var(--font-heading)',
-    fontSize: '1.3rem',
+    textTransform: 'uppercase',
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: '50%',
+    background: '#22C55E',
+    animation: 'glowPulse 1.5s ease-in-out infinite',
+  },
+  statsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+    gap: '14px',
+    marginBottom: '28px',
+  },
+  statCard: {
+    background: 'var(--color-muted)',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-md)',
+    padding: '18px',
+    transition: 'all var(--transition-normal)',
+  },
+  statTop: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: '8px',
+  },
+  statVal: {
+    fontFamily: 'var(--font-heading)',
+    fontSize: '1.6rem',
     fontWeight: 700,
     color: 'var(--color-foreground)',
+    lineHeight: 1,
   },
-  summaryLabel: {
-    fontSize: '0.72rem',
+  statLabel: {
+    fontSize: '0.75rem',
     color: '#64748B',
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
+    fontWeight: 500,
+  },
+  cardSkeleton: {
+    background: 'var(--color-muted)',
+    borderRadius: 'var(--radius-md)',
+    padding: '20px',
+    border: '1px solid var(--color-border)',
   },
   grid: {
     display: 'grid',
@@ -293,6 +350,7 @@ const styles = {
     border: '1px solid var(--color-border)',
     borderRadius: 'var(--radius-md)',
     padding: '20px',
+    transition: 'all var(--transition-normal)',
   },
   cardHeader: {
     display: 'flex',
@@ -323,6 +381,9 @@ const styles = {
     textTransform: 'capitalize',
   },
   cardIp: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
     fontFamily: 'var(--font-heading)',
     fontSize: '0.8rem',
     color: '#64748B',
@@ -406,6 +467,22 @@ const styles = {
     textAlign: 'center',
     padding: '20px',
   },
+  empty: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '60px 20px',
+  },
+  emptyIcon: {
+    width: '72px',
+    height: '72px',
+    borderRadius: 'var(--radius-xl)',
+    background: 'rgba(51, 65, 85, 0.2)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   errorBox: {
     background: 'rgba(239, 68, 68, 0.1)',
     border: '1px solid rgba(239, 68, 68, 0.3)',
@@ -413,12 +490,5 @@ const styles = {
     padding: '12px 16px',
     borderRadius: 'var(--radius-sm)',
     fontSize: '0.88rem',
-  },
-  empty: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '60px 20px',
   },
 };

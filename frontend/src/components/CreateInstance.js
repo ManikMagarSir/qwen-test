@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { ArrowLeft, Server, Loader } from 'lucide-react';
+import { ArrowLeft, Server, Loader, Cpu, HardDrive, Database, Globe, Key, Network } from 'lucide-react';
 
 export default function CreateInstance() {
   const navigate = useNavigate();
@@ -74,103 +74,75 @@ export default function CreateInstance() {
     }
   };
 
+  const fields = [
+    { icon: Globe, label: 'Container Name', value: name, set: (v) => { setName(v); setErrors((p) => ({ ...p, name: '' })); }, err: errors.name, type: 'text', placeholder: 'my-container', min: undefined, max: undefined },
+    { icon: Server, label: 'OS Template', err: errors.template, isTemplate: true },
+    { icon: Cpu, label: 'CPU Cores', value: cpus, set: (v) => { setCpus(v); setErrors((p) => ({ ...p, cpus: '' })); }, err: errors.cpus, type: 'number', min: 1, max: 32 },
+    { icon: Database, label: 'Memory (MB)', value: memory, set: (v) => { setMemory(v); setErrors((p) => ({ ...p, memory: '' })); }, err: errors.memory, type: 'number', min: 64, max: 131072 },
+    { icon: HardDrive, label: 'Disk (GB)', value: disk, set: (v) => { setDisk(v); setErrors((p) => ({ ...p, disk: '' })); }, err: errors.disk, type: 'number', min: 1, max: 1000 },
+    { icon: Network, label: 'Storage', value: storage, set: setStorage, err: undefined, type: 'text', placeholder: 'local-lvm' },
+    { icon: Network, label: 'Bridge', value: bridge, set: setBridge, err: undefined, type: 'text', placeholder: 'vmbr0' },
+    { icon: Key, label: 'Root Password', value: password, set: (v) => { setPassword(v); setErrors((p) => ({ ...p, password: '' })); }, err: errors.password, type: 'text', placeholder: 'changeme' },
+  ];
+
   return (
     <div style={styles.page}>
       <div style={styles.container}>
         <button onClick={() => navigate('/dashboard')} style={styles.backBtn}>
-          <ArrowLeft size={16} /> Back to Instances
+          <ArrowLeft size={16} /> Back to Dashboard
         </button>
 
-        <h1 style={styles.heading}>New LXC Container</h1>
-        <p style={styles.subheading}>Configure your container and deploy it to the cluster.</p>
+        <div style={styles.header}>
+          <h1 style={styles.heading}>New LXC Container</h1>
+          <p style={styles.subheading}>Configure and deploy a container to your infrastructure.</p>
+        </div>
 
         {error && <div style={styles.error}>{error}</div>}
 
         <form onSubmit={handleSubmit} style={styles.form}>
           <div className="create-form-grid" style={styles.grid}>
-            <Field label="Container Name" error={errors.name}>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => { setName(e.target.value); setErrors((p) => ({ ...p, name: '' })); }}
-                placeholder="my-container"
-                style={{ ...styles.input, borderColor: errors.name ? '#EF4444' : undefined }}
-              />
-            </Field>
-
-            <Field label="OS Template" error={errors.template}>
-              {loadingTemplates ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#94A3B8', fontSize: '0.85rem', padding: '10px 0' }}>
-                  <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loading templates...
-                </div>
-              ) : templates.length === 0 ? (
-                <div style={{ color: '#F87171', fontSize: '0.85rem', padding: '10px 0' }}>No templates found in storage</div>
-              ) : (
-                <select value={template} onChange={(e) => setTemplate(e.target.value)} style={styles.input}>
-                  {templates.map((t) => (
-                    <option key={t.volid} value={t.volid}>{t.name}</option>
-                  ))}
-                </select>
-              )}
-            </Field>
-
-            <Field label="CPU Cores" error={errors.cpus}>
-              <input
-                type="number"
-                value={cpus}
-                onChange={(e) => { setCpus(e.target.value); setErrors((p) => ({ ...p, cpus: '' })); }}
-                min={1} max={32}
-                style={{ ...styles.input, borderColor: errors.cpus ? '#EF4444' : undefined }}
-              />
-            </Field>
-
-            <Field label="Memory (MB)" error={errors.memory}>
-              <input
-                type="number"
-                value={memory}
-                onChange={(e) => { setMemory(e.target.value); setErrors((p) => ({ ...p, memory: '' })); }}
-                min={128} max={131072}
-                style={{ ...styles.input, borderColor: errors.memory ? '#EF4444' : undefined }}
-              />
-            </Field>
-
-            <Field label="Disk (GB)" error={errors.disk}>
-              <input
-                type="number"
-                value={disk}
-                onChange={(e) => { setDisk(e.target.value); setErrors((p) => ({ ...p, disk: '' })); }}
-                min={1} max={1000}
-                style={{ ...styles.input, borderColor: errors.disk ? '#EF4444' : undefined }}
-              />
-            </Field>
-
-            <Field label="Storage">
-              <input type="text" value={storage} onChange={(e) => setStorage(e.target.value)} style={styles.input} />
-            </Field>
-
-            <Field label="Bridge">
-              <input type="text" value={bridge} onChange={(e) => setBridge(e.target.value)} style={styles.input} />
-            </Field>
-
-            <Field label="Root Password" error={errors.password}>
-              <input
-                type="text"
-                value={password}
-                onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: '' })); }}
-                style={{ ...styles.input, borderColor: errors.password ? '#EF4444' : undefined }}
-              />
-            </Field>
+            {fields.map((f) => (
+              <div key={f.label} style={styles.field}>
+                <label style={styles.label}>
+                  <f.icon size={13} color="#94A3B8" />
+                  {f.label}
+                </label>
+                {f.isTemplate ? (
+                  loadingTemplates ? (
+                    <div style={styles.loadingText}>
+                      <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loading templates...
+                    </div>
+                  ) : templates.length === 0 ? (
+                    <div style={styles.errorText}>No templates found</div>
+                  ) : (
+                    <select value={template} onChange={(e) => setTemplate(e.target.value)} style={styles.input}>
+                      {templates.map((t) => (
+                        <option key={t.volid} value={t.volid}>{t.name}</option>
+                      ))}
+                    </select>
+                  )
+                ) : (
+                  <input
+                    type={f.type}
+                    value={f.value}
+                    onChange={(e) => f.set(f.type === 'number' ? Number(e.target.value) : e.target.value)}
+                    min={f.min}
+                    max={f.max}
+                    placeholder={f.placeholder}
+                    style={{ ...styles.input, borderColor: f.err ? '#EF4444' : undefined }}
+                    required={!f.isTemplate}
+                  />
+                )}
+                {f.err && <span style={styles.fieldError}>{f.err}</span>}
+              </div>
+            ))}
           </div>
 
           <div style={styles.buttons}>
-            <button type="button" onClick={() => navigate('/dashboard')} style={styles.cancelBtn}>
+            <button type="button" onClick={() => navigate('/dashboard')} className="btn-secondary" style={styles.cancelBtn}>
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={loading || loadingTemplates || templates.length === 0}
-              style={styles.submitBtn}
-            >
+            <button type="submit" disabled={loading || loadingTemplates || templates.length === 0} className="btn-primary" style={styles.submitBtn}>
               {loading ? (
                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
                   <span style={btnSpinner} /> Deploying...
@@ -188,19 +160,9 @@ export default function CreateInstance() {
   );
 }
 
-function Field({ label, error, children }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-      <label style={{ color: '#94A3B8', fontSize: '0.85rem', fontWeight: 500 }}>{label}</label>
-      {children}
-      {error && <span style={{ color: '#F87171', fontSize: '0.78rem' }}>{error}</span>}
-    </div>
-  );
-}
-
 const btnSpinner = {
   width: '16px', height: '16px',
-  border: '2px solid rgba(255,255,255,0.3)',
+  border: '2px solid rgba(2, 6, 23, 0.3)',
   borderTopColor: '#020617',
   borderRadius: '50%',
   animation: 'spin 0.6s linear infinite',
@@ -214,7 +176,7 @@ const styles = {
     padding: '32px 24px',
   },
   container: {
-    maxWidth: '680px',
+    maxWidth: '720px',
     margin: '0 auto',
   },
   backBtn: {
@@ -228,6 +190,10 @@ const styles = {
     cursor: 'pointer',
     padding: '4px 0',
     marginBottom: '24px',
+    transition: 'color var(--transition-fast)',
+  },
+  header: {
+    marginBottom: '28px',
   },
   heading: {
     fontFamily: 'var(--font-heading)',
@@ -238,7 +204,6 @@ const styles = {
     color: '#64748B',
     fontSize: '0.9rem',
     marginTop: '6px',
-    marginBottom: '28px',
   },
   error: {
     background: 'rgba(239, 68, 68, 0.1)',
@@ -248,12 +213,15 @@ const styles = {
     borderRadius: 'var(--radius-sm)',
     fontSize: '0.88rem',
     marginBottom: '20px',
+    animation: 'slideDown 0.2s ease',
   },
   form: {
-    background: 'var(--color-muted)',
-    borderRadius: 'var(--radius-md)',
-    padding: '28px',
-    border: '1px solid var(--color-border)',
+    background: 'rgba(26, 30, 47, 0.6)',
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
+    borderRadius: 'var(--radius-lg)',
+    padding: '32px',
+    border: '1px solid rgba(51, 65, 85, 0.4)',
   },
   grid: {
     display: 'grid',
@@ -261,15 +229,45 @@ const styles = {
     gap: '20px',
     marginBottom: '24px',
   },
+  field: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+  },
+  label: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    color: '#94A3B8',
+    fontSize: '0.85rem',
+    fontWeight: 500,
+  },
   input: {
     width: '100%',
     padding: '10px 12px',
     borderRadius: 'var(--radius-sm)',
     border: '1px solid var(--color-border)',
-    background: 'var(--color-background)',
+    background: 'rgba(2, 6, 23, 0.5)',
     color: 'var(--color-foreground)',
     fontSize: '0.9rem',
     outline: 'none',
+  },
+  fieldError: {
+    color: '#F87171',
+    fontSize: '0.78rem',
+  },
+  loadingText: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    color: '#94A3B8',
+    fontSize: '0.85rem',
+    padding: '10px 0',
+  },
+  errorText: {
+    color: '#F87171',
+    fontSize: '0.85rem',
+    padding: '10px 0',
   },
   buttons: {
     display: 'flex',
@@ -277,25 +275,8 @@ const styles = {
   },
   cancelBtn: {
     flex: 1,
-    padding: '12px',
-    borderRadius: 'var(--radius-sm)',
-    border: '1px solid var(--color-border)',
-    background: 'transparent',
-    color: '#94A3B8',
-    fontSize: '0.9rem',
-    cursor: 'pointer',
   },
   submitBtn: {
     flex: 2,
-    padding: '12px',
-    borderRadius: 'var(--radius-sm)',
-    border: 'none',
-    background: 'var(--color-accent)',
-    color: '#020617',
-    fontSize: '0.9rem',
-    fontWeight: 600,
-    cursor: 'pointer',
   },
 };
-
-

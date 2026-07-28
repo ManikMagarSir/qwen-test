@@ -3,7 +3,7 @@ import api from '../api/axios';
 import TerminalConsole from './TerminalConsole';
 import ResizeModal from './ResizeModal';
 import {
-  Play, Square, RefreshCw, Pause, Monitor, Trash2,
+  Play, Square, RefreshCw, Pause, Trash2,
   Cpu, HardDrive, Database, Globe, Camera, ChevronDown, ChevronRight, RotateCcw, X, Terminal, Sliders,
 } from 'lucide-react';
 
@@ -96,15 +96,15 @@ export default function InstanceCard({ instance, onDelete, onStatusChange }) {
 
   const currentSnap = snapshots?.find((s) => s.name === 'current')?.parent;
 
-  const statusColors = {
-    running: { bg: 'rgba(34, 197, 94, 0.15)', text: '#22C55E', dot: '#22C55E' },
-    stopped: { bg: 'rgba(239, 68, 68, 0.15)', text: '#F87171', dot: '#EF4444' },
-    paused: { bg: 'rgba(245, 158, 11, 0.15)', text: '#FBBF24', dot: '#F59E0B' },
-    unknown: { bg: 'rgba(100, 116, 139, 0.15)', text: '#94A3B8', dot: '#64748B' },
-    creating: { bg: 'rgba(59, 130, 246, 0.15)', text: '#60A5FA', dot: '#3B82F6' },
+  const statusConfig = {
+    running: { bg: 'rgba(34, 197, 94, 0.15)', text: '#22C55E', dot: '#22C55E', glow: true },
+    stopped: { bg: 'rgba(239, 68, 68, 0.15)', text: '#F87171', dot: '#EF4444', glow: false },
+    paused: { bg: 'rgba(245, 158, 11, 0.15)', text: '#FBBF24', dot: '#F59E0B', glow: false },
+    unknown: { bg: 'rgba(100, 116, 139, 0.15)', text: '#94A3B8', dot: '#64748B', glow: false },
+    creating: { bg: 'rgba(59, 130, 246, 0.15)', text: '#60A5FA', dot: '#3B82F6', glow: false },
   };
 
-  const sc = statusColors[instance.status] || statusColors.unknown;
+  const sc = statusConfig[instance.status] || statusConfig.unknown;
 
   const handleResized = (updated) => {
     if (updated.cpus) instance.cpus = updated.cpus;
@@ -113,20 +113,21 @@ export default function InstanceCard({ instance, onDelete, onStatusChange }) {
   };
 
   return (
-    <div style={styles.card}>
+    <div className="card-hover" style={styles.card}>
       <div style={styles.top}>
         <div style={styles.topLeft}>
-          <span style={styles.typeBadge}>{instance.type === 'qemu' ? 'VM' : 'CT'}</span>
+          <span style={styles.typeBadge}>CT</span>
           <span style={styles.name}>{instance.name}</span>
         </div>
         <div style={{ ...styles.status, background: sc.bg, color: sc.text }}>
+          {sc.glow && <div style={{ ...styles.statusGlow, boxShadow: `0 0 6px ${sc.dot}` }} />}
           <span style={{ ...styles.statusDot, background: sc.dot }} />
           {instance.status}
         </div>
       </div>
 
       <div style={styles.meta}>
-        <Meta icon={Cpu} label={`${instance.cpus} core(s)`} />
+        <Meta icon={Cpu} label={`${instance.cpus} core${instance.cpus !== 1 ? 's' : ''}`} />
         <Meta icon={Database} label={`${instance.memory} MB`} />
         <Meta icon={HardDrive} label={`${instance.disk} GB`} />
         <Meta icon={Globe} label={instance.ip || '\u2014'} />
@@ -170,14 +171,16 @@ export default function InstanceCard({ instance, onDelete, onStatusChange }) {
                 required
                 style={styles.snapInput}
               />
-              <button type="submit" style={styles.snapCreateBtn}>Create</button>
+              <button type="submit" className="btn-primary" style={styles.snapCreateBtn}>Create</button>
             </form>
             {snapshots && snapshots.filter((s) => s.name !== 'current').length > 0 ? (
               <div style={styles.snapList}>
                 {snapshots.filter((s) => s.name !== 'current').map((s) => (
                   <div key={s.name} style={styles.snapItem}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#CBD5E1', fontSize: '0.85rem' }}>
-                      {s.name === currentSnap && <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22C55E', display: 'inline-block', animation: 'breathe 2s ease-in-out infinite' }} />}
+                      {s.name === currentSnap && (
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22C55E', display: 'inline-block', animation: 'breathe 2s ease-in-out infinite' }} />
+                      )}
                       {s.name}
                     </span>
                     <div style={{ display: 'flex', gap: '4px' }}>
@@ -202,7 +205,7 @@ export default function InstanceCard({ instance, onDelete, onStatusChange }) {
 
 function Meta({ icon: Icon, label }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#94A3B8', fontSize: '0.85rem' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '7px', color: '#94A3B8', fontSize: '0.85rem' }}>
       <Icon size={13} />
       <span>{label}</span>
     </div>
@@ -233,8 +236,7 @@ function ActionBtn({ onClick, loading, icon: Icon, label, accent, color }) {
 }
 
 const miniSpinner = {
-  width: '14px',
-  height: '14px',
+  width: '14px', height: '14px',
   border: '2px solid rgba(255,255,255,0.3)',
   borderTopColor: '#fff',
   borderRadius: '50%',
@@ -248,8 +250,9 @@ const styles = {
     borderRadius: 'var(--radius-md)',
     padding: '20px',
     border: '1px solid var(--color-border)',
-    transition: 'border-color var(--transition-fast), box-shadow var(--transition-fast)',
-    animation: 'slideUp 0.3s ease both',
+    animation: 'slideUp 0.4s ease both',
+    position: 'relative',
+    overflow: 'hidden',
   },
   top: {
     display: 'flex',
@@ -264,7 +267,7 @@ const styles = {
     minWidth: 0,
   },
   typeBadge: {
-    background: 'var(--color-accent)',
+    background: 'linear-gradient(135deg, #22C55E, #16A34A)',
     color: '#020617',
     padding: '2px 8px',
     borderRadius: '4px',
@@ -272,6 +275,7 @@ const styles = {
     fontWeight: 700,
     fontFamily: 'var(--font-heading)',
     flexShrink: 0,
+    letterSpacing: '0.3px',
   },
   name: {
     fontSize: '1rem',
@@ -292,12 +296,22 @@ const styles = {
     fontFamily: 'var(--font-heading)',
     textTransform: 'uppercase',
     flexShrink: 0,
+    position: 'relative',
+  },
+  statusGlow: {
+    position: 'absolute',
+    inset: 0,
+    borderRadius: '20px',
+    animation: 'glowPulse 2s ease-in-out infinite',
+    opacity: 0.3,
   },
   statusDot: {
     width: 7,
     height: 7,
     borderRadius: '50%',
     display: 'inline-block',
+    position: 'relative',
+    zIndex: 1,
   },
   meta: {
     display: 'grid',
@@ -313,6 +327,7 @@ const styles = {
     borderRadius: 'var(--radius-sm)',
     fontSize: '0.82rem',
     marginBottom: '12px',
+    animation: 'slideDown 0.2s ease',
   },
   actions: {
     display: 'flex',
@@ -323,18 +338,19 @@ const styles = {
   actionBtn: {
     display: 'inline-flex',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: '5px',
-    padding: '6px 12px',
+    padding: '7px 11px',
     borderRadius: 'var(--radius-sm)',
     border: 'none',
     fontSize: '0.8rem',
     fontWeight: 500,
     fontFamily: 'var(--font-body)',
     cursor: 'pointer',
-    transition: 'opacity var(--transition-fast)',
+    transition: 'all var(--transition-fast)',
   },
   snapSection: {
-    borderTop: '1px solid var(--color-border)',
+    borderTop: '1px solid rgba(51, 65, 85, 0.5)',
     paddingTop: '12px',
   },
   snapToggle: {
@@ -348,6 +364,7 @@ const styles = {
     fontWeight: 500,
     cursor: 'pointer',
     padding: '4px 0',
+    transition: 'color var(--transition-fast)',
   },
   snapContent: {
     marginTop: '10px',
@@ -370,13 +387,7 @@ const styles = {
   },
   snapCreateBtn: {
     padding: '8px 14px',
-    borderRadius: 'var(--radius-sm)',
-    border: 'none',
-    background: 'var(--color-accent)',
-    color: '#020617',
-    fontWeight: 600,
     fontSize: '0.82rem',
-    cursor: 'pointer',
   },
   snapList: {
     display: 'flex',
@@ -388,7 +399,7 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '8px 10px',
-    background: 'var(--color-background)',
+    background: 'rgba(2, 6, 23, 0.4)',
     borderRadius: 'var(--radius-sm)',
     fontSize: '0.85rem',
   },
@@ -400,5 +411,6 @@ const styles = {
     padding: '2px 6px',
     borderRadius: '4px',
     display: 'flex',
+    transition: 'all var(--transition-fast)',
   },
 };
