@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { Cloud, LogIn } from 'lucide-react';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -18,106 +19,215 @@ export default function Login() {
       await login(email, password);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed');
+      setError(err.response?.data?.error || 'Invalid credentials');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={styles.container}>
-      <form onSubmit={handleSubmit} style={styles.form}>
-        <h1 style={styles.title}>☁️ Cloud Manager</h1>
-        <p style={styles.subtitle}>Sign in to your account</p>
-        {error && <div style={styles.error}>{error}</div>}
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          style={styles.input}
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          style={styles.input}
-        />
-        <button type="submit" disabled={loading} style={styles.button}>
-          {loading ? 'Signing in...' : 'Sign In'}
-        </button>
-        <p style={styles.link}>
-          Don't have an account? <Link to="/register">Register</Link>
-        </p>
-      </form>
+    <div style={styles.page}>
+      <div className="auth-sidebar" style={styles.sidebar}>
+        <div style={styles.sidebarContent}>
+          <Cloud size={48} color="#22C55E" />
+          <h1 style={styles.sidebarTitle}>Cloud Manager</h1>
+          <p style={styles.sidebarDesc}>
+            Manage your Proxmox infrastructure through a simple, multi-tenant interface.
+          </p>
+          <div style={styles.features}>
+            <Feature text="Create and manage LXC containers" />
+            <Feature text="Static IP allocation" />
+            <Feature text="Snapshot management" />
+            <Feature text="Web-based console access" />
+          </div>
+        </div>
+      </div>
+
+      <div style={styles.formWrap}>
+        <div style={styles.formContainer}>
+          <h2 style={styles.formTitle}>Welcome back</h2>
+          <p style={styles.formSub}>Sign in to your account</p>
+
+          {error && <div style={styles.error}>{error}</div>}
+
+          <form onSubmit={handleSubmit} style={styles.form}>
+            <div style={styles.field}>
+              <label htmlFor="email" style={styles.label}>Email</label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="you@example.com"
+                style={styles.input}
+              />
+            </div>
+            <div style={styles.field}>
+              <label htmlFor="password" style={styles.label}>Password</label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="Enter your password"
+                style={styles.input}
+              />
+            </div>
+            <button type="submit" disabled={loading} style={styles.button}>
+              {loading ? (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                  <span style={spinnerStyle} /> Signing in...
+                </span>
+              ) : (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                  <LogIn size={16} /> Sign In
+                </span>
+              )}
+            </button>
+          </form>
+
+          <p style={styles.footer}>
+            Don't have an account? <Link to="/register" style={styles.link}>Create one</Link>
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
 
+function Feature({ text }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#94A3B8', fontSize: '0.9rem' }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E', flexShrink: 0 }} />
+      {text}
+    </div>
+  );
+}
+
+const spinnerStyle = {
+  width: '16px',
+  height: '16px',
+  border: '2px solid rgba(255,255,255,0.3)',
+  borderTopColor: '#fff',
+  borderRadius: '50%',
+  animation: 'spin 0.6s linear infinite',
+  display: 'inline-block',
+};
+
 const styles = {
-  container: {
-    minHeight: '100vh',
+  page: {
+    minHeight: '100dvh',
+    display: 'flex',
+    background: 'var(--color-background)',
+  },
+  sidebar: {
+    display: 'none',
+    width: '440px',
+    background: 'var(--color-muted)',
+    padding: '48px',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    borderRight: '1px solid var(--color-border)',
+  },
+  sidebarContent: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px',
+  },
+  sidebarTitle: {
+    fontFamily: 'var(--font-heading)',
+    fontSize: '1.8rem',
+    color: 'var(--color-foreground)',
+    lineHeight: 1.2,
+  },
+  sidebarDesc: {
+    color: '#94A3B8',
+    fontSize: '0.95rem',
+    lineHeight: 1.7,
+  },
+  features: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    marginTop: '8px',
+  },
+  formWrap: {
+    flex: 1,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: '#0f0f23',
+    padding: '24px',
   },
-  form: {
-    background: '#1a1a2e',
-    padding: '40px',
-    borderRadius: '12px',
+  formContainer: {
     width: '100%',
     maxWidth: '400px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '16px',
   },
-  title: {
-    color: '#e94560',
-    margin: 0,
-    textAlign: 'center',
-    fontSize: '1.8rem',
+  formTitle: {
+    fontFamily: 'var(--font-heading)',
+    fontSize: '1.5rem',
+    color: 'var(--color-foreground)',
+    marginBottom: '6px',
   },
-  subtitle: {
-    color: '#888',
-    textAlign: 'center',
-    margin: 0,
-    fontSize: '0.95rem',
+  formSub: {
+    color: '#94A3B8',
+    fontSize: '0.9rem',
+    marginBottom: '28px',
   },
   error: {
-    background: '#3d1f1f',
-    color: '#ff6b6b',
-    padding: '10px',
-    borderRadius: '6px',
-    fontSize: '0.9rem',
-    textAlign: 'center',
+    background: 'rgba(239, 68, 68, 0.1)',
+    border: '1px solid rgba(239, 68, 68, 0.3)',
+    color: '#FCA5A5',
+    padding: '12px 16px',
+    borderRadius: 'var(--radius-sm)',
+    fontSize: '0.88rem',
+    marginBottom: '16px',
+  },
+  form: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '18px',
+  },
+  field: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+  },
+  label: {
+    color: '#94A3B8',
+    fontSize: '0.85rem',
+    fontWeight: 500,
   },
   input: {
-    padding: '12px',
-    borderRadius: '6px',
-    border: '1px solid #333',
-    background: '#16213e',
-    color: '#eee',
-    fontSize: '1rem',
-    outline: 'none',
+    padding: '12px 14px',
+    borderRadius: 'var(--radius-sm)',
+    border: '1px solid var(--color-border)',
+    background: 'var(--color-muted)',
+    color: 'var(--color-foreground)',
+    fontSize: '0.95rem',
   },
   button: {
     padding: '12px',
-    borderRadius: '6px',
+    borderRadius: 'var(--radius-sm)',
     border: 'none',
-    background: '#e94560',
-    color: '#fff',
-    fontSize: '1rem',
+    background: 'var(--color-accent)',
+    color: '#020617',
+    fontSize: '0.95rem',
     fontWeight: 600,
     cursor: 'pointer',
+    marginTop: '4px',
+  },
+  footer: {
+    textAlign: 'center',
+    color: '#94A3B8',
+    fontSize: '0.88rem',
+    marginTop: '24px',
   },
   link: {
-    color: '#888',
-    textAlign: 'center',
-    fontSize: '0.9rem',
-    margin: 0,
+    color: 'var(--color-accent)',
+    fontWeight: 500,
   },
 };
+
+

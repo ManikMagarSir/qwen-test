@@ -1,13 +1,10 @@
 import React, { useState } from 'react';
 import api from '../api/axios';
 import TerminalConsole from './TerminalConsole';
-
-const STATUS_COLORS = {
-  running: '#4ade80',
-  stopped: '#f87171',
-  paused: '#fbbf24',
-  unknown: '#888',
-};
+import {
+  Play, Square, RefreshCw, Pause, Monitor, Trash2,
+  Cpu, HardDrive, Database, Globe, Camera, ChevronDown, ChevronRight, RotateCcw, X, Terminal,
+} from 'lucide-react';
 
 export default function InstanceCard({ instance, onDelete, onStatusChange }) {
   const [actionLoading, setActionLoading] = useState('');
@@ -46,10 +43,7 @@ export default function InstanceCard({ instance, onDelete, onStatusChange }) {
   };
 
   const toggleSnapshots = async () => {
-    if (showSnapshots) {
-      setShowSnapshots(false);
-      return;
-    }
+    if (showSnapshots) { setShowSnapshots(false); return; }
     setError('');
     try {
       const res = await api.get(`/instances/${instance._id}/snapshots`);
@@ -74,8 +68,6 @@ export default function InstanceCard({ instance, onDelete, onStatusChange }) {
     }
   };
 
-  const currentSnap = snapshots?.find((s) => s.name === 'current')?.parent;
-
   const deleteSnapshot = async (name) => {
     if (!window.confirm(`Delete snapshot "${name}"?`)) return;
     setError('');
@@ -89,7 +81,7 @@ export default function InstanceCard({ instance, onDelete, onStatusChange }) {
   };
 
   const rollbackSnapshot = async (name) => {
-    if (!window.confirm(`Roll back to snapshot "${name}"? The VM will be reverted.`)) return;
+    if (!window.confirm(`Roll back to snapshot "${name}"?`)) return;
     setError('');
     try {
       await api.post(`/instances/${instance._id}/snapshots/${name}/rollback`);
@@ -100,86 +92,63 @@ export default function InstanceCard({ instance, onDelete, onStatusChange }) {
     }
   };
 
-  const typeLabel = instance.type === 'qemu' ? 'VM' : 'LXC';
+  const currentSnap = snapshots?.find((s) => s.name === 'current')?.parent;
+
+  const statusColors = {
+    running: { bg: 'rgba(34, 197, 94, 0.15)', text: '#22C55E', dot: '#22C55E' },
+    stopped: { bg: 'rgba(239, 68, 68, 0.15)', text: '#F87171', dot: '#EF4444' },
+    paused: { bg: 'rgba(245, 158, 11, 0.15)', text: '#FBBF24', dot: '#F59E0B' },
+    unknown: { bg: 'rgba(100, 116, 139, 0.15)', text: '#94A3B8', dot: '#64748B' },
+    creating: { bg: 'rgba(59, 130, 246, 0.15)', text: '#60A5FA', dot: '#3B82F6' },
+  };
+
+  const sc = statusColors[instance.status] || statusColors.unknown;
 
   return (
     <div style={styles.card}>
-      <div style={styles.header}>
-        <div>
-          <span style={styles.typeBadge}>{typeLabel}</span>
+      <div style={styles.top}>
+        <div style={styles.topLeft}>
+          <span style={styles.typeBadge}>{instance.type === 'qemu' ? 'VM' : 'CT'}</span>
           <span style={styles.name}>{instance.name}</span>
         </div>
-        <span
-          style={{
-            ...styles.status,
-            background: STATUS_COLORS[instance.status] || '#888',
-          }}
-        >
+        <div style={{ ...styles.status, background: sc.bg, color: sc.text }}>
+          <span style={{ ...styles.statusDot, background: sc.dot }} />
           {instance.status}
-        </span>
+        </div>
       </div>
 
-      <div style={styles.details}>
-        <div style={styles.detail}><strong>VMID:</strong> {instance.vmid}</div>
-        <div style={styles.detail}><strong>CPU:</strong> {instance.cpus} core(s)</div>
-        <div style={styles.detail}><strong>RAM:</strong> {instance.memory} MB</div>
-        <div style={styles.detail}><strong>Disk:</strong> {instance.disk} GB</div>
-        <div style={{ ...styles.detail, gridColumn: 'span 2' }}>
-          <strong>IP:</strong>{' '}
-          {instance.ip ? (
-            <span style={{ color: '#4ade80' }}>{instance.ip}</span>
-          ) : (
-            <span style={{ color: '#888' }}>—</span>
-          )}
-        </div>
+      <div style={styles.meta}>
+        <Meta icon={Cpu} label={`${instance.cpus} core(s)`} />
+        <Meta icon={Database} label={`${instance.memory} MB`} />
+        <Meta icon={HardDrive} label={`${instance.disk} GB`} />
+        <Meta icon={Globe} label={instance.ip || '\u2014'} />
       </div>
 
       {error && <div style={styles.error}>{error}</div>}
 
       <div style={styles.actions}>
         {instance.status === 'stopped' && (
-          <button onClick={() => doAction('start', 'start')} disabled={!!actionLoading} style={styles.actionBtn}>
-            {actionLoading === 'start' ? '...' : '▶ Start'}
-          </button>
+          <ActionBtn onClick={() => doAction('start', 'start')} loading={actionLoading === 'start'} icon={Play} label="Start" accent />
         )}
         {instance.status === 'running' && (
           <>
-            <button
-              onClick={() => setShowConnect(true)}
-              disabled={!instance.ip}
-              style={{
-                ...styles.actionBtn,
-                background: instance.ip ? '#3b82f6' : '#555',
-                cursor: instance.ip ? 'pointer' : 'not-allowed',
-              }}
-              title={instance.ip ? `SSH root@${instance.ip}` : 'No IP assigned'}
-            >
-              💻 Connect
-            </button>
-            <button onClick={() => doAction('stop', 'stop')} disabled={!!actionLoading} style={{ ...styles.actionBtn, background: '#f87171' }}>
-              {actionLoading === 'stop' ? '...' : '⏹ Stop'}
-            </button>
-            <button onClick={() => doAction('reboot', 'reboot')} disabled={!!actionLoading} style={{ ...styles.actionBtn, background: '#fbbf24', color: '#000' }}>
-              {actionLoading === 'reboot' ? '...' : '🔄 Reboot'}
-            </button>
-            <button onClick={() => doAction('suspend', 'suspend')} disabled={!!actionLoading} style={{ ...styles.actionBtn, background: '#f97316' }}>
-              {actionLoading === 'suspend' ? '...' : '⏸ Suspend'}
-            </button>
+            <ActionBtn onClick={() => setShowConnect(true)} icon={Terminal} label="Console" color="#3B82F6" />
+            <ActionBtn onClick={() => doAction('stop', 'stop')} loading={actionLoading === 'stop'} icon={Square} label="Stop" color="#EF4444" />
+            <ActionBtn onClick={() => doAction('reboot', 'reboot')} loading={actionLoading === 'reboot'} icon={RefreshCw} label="Reboot" color="#F59E0B" />
+            <ActionBtn onClick={() => doAction('suspend', 'suspend')} loading={actionLoading === 'suspend'} icon={Pause} label="Pause" color="#F97316" />
           </>
         )}
         {instance.status === 'paused' && (
-          <button onClick={() => doAction('resume', 'resume')} disabled={!!actionLoading} style={styles.actionBtn}>
-            {actionLoading === 'resume' ? '...' : '▶ Resume'}
-          </button>
+          <ActionBtn onClick={() => doAction('resume', 'resume')} loading={actionLoading === 'resume'} icon={Play} label="Resume" accent />
         )}
-        <button onClick={handleDelete} disabled={!!actionLoading} style={{ ...styles.actionBtn, background: '#dc2626' }}>
-          {actionLoading === 'delete' ? '...' : '🗑 Delete'}
-        </button>
+        <ActionBtn onClick={handleDelete} loading={actionLoading === 'delete'} icon={Trash2} label="Delete" color="#EF4444" />
       </div>
 
       <div style={styles.snapSection}>
         <button onClick={toggleSnapshots} style={styles.snapToggle}>
-          {showSnapshots ? '▼ Hide Snapshots' : '▶ Snapshots'}
+          {showSnapshots ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          <Camera size={14} />
+          Snapshots
         </button>
         {showSnapshots && (
           <div style={styles.snapContent}>
@@ -194,117 +163,185 @@ export default function InstanceCard({ instance, onDelete, onStatusChange }) {
               />
               <button type="submit" style={styles.snapCreateBtn}>Create</button>
             </form>
-            {snapshots && snapshots.length > 0 ? (
+            {snapshots && snapshots.filter((s) => s.name !== 'current').length > 0 ? (
               <div style={styles.snapList}>
-                {snapshots
-                  .filter((s) => s.name !== 'current')
-                  .map((s) => (
-                    <div key={s.name} style={styles.snapItem}>
-                      <span style={{ color: '#ccc', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        {s.name === currentSnap && <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#4ade80', display: 'inline-block' }} />}
-                        {s.name}
-                      </span>
-                      <div style={styles.snapActions}>
-                        <button onClick={() => rollbackSnapshot(s.name)} style={styles.snapSmallBtn} title="Rollback">
-                          ↩
-                        </button>
-                        <button onClick={() => deleteSnapshot(s.name)} style={{ ...styles.snapSmallBtn, color: '#f87171' }} title="Delete">
-                          ✕
-                        </button>
-                      </div>
+                {snapshots.filter((s) => s.name !== 'current').map((s) => (
+                  <div key={s.name} style={styles.snapItem}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#CBD5E1', fontSize: '0.85rem' }}>
+                      {s.name === currentSnap && <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22C55E', display: 'inline-block', animation: 'breathe 2s ease-in-out infinite' }} />}
+                      {s.name}
+                    </span>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button onClick={() => rollbackSnapshot(s.name)} style={styles.snapActionBtn} title="Rollback"><RotateCcw size={12} /></button>
+                      <button onClick={() => deleteSnapshot(s.name)} style={{ ...styles.snapActionBtn, color: '#F87171' }} title="Delete"><X size={12} /></button>
                     </div>
-                  ))}
+                  </div>
+                ))}
               </div>
             ) : (
-              <p style={{ color: '#888', fontSize: '0.85rem' }}>No snapshots</p>
+              <p style={{ color: '#64748B', fontSize: '0.82rem' }}>No snapshots</p>
             )}
           </div>
         )}
       </div>
+
       {showConnect && <TerminalConsole instance={instance} onClose={() => setShowConnect(false)} />}
     </div>
   );
 }
 
+function Meta({ icon: Icon, label }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#94A3B8', fontSize: '0.85rem' }}>
+      <Icon size={13} />
+      <span>{label}</span>
+    </div>
+  );
+}
+
+function ActionBtn({ onClick, loading, icon: Icon, label, accent, color }) {
+  const bg = accent ? 'var(--color-accent)' : loading ? '#334155' : color ? `${color}20` : '#334155';
+  const textColor = accent ? '#020617' : color || '#CBD5E1';
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={loading}
+      style={{
+        ...styles.actionBtn,
+        background: bg,
+        color: textColor,
+        opacity: loading ? 0.6 : 1,
+        cursor: loading ? 'not-allowed' : 'pointer',
+      }}
+      title={label}
+    >
+      {loading ? <span style={miniSpinner} /> : <Icon size={14} />}
+      {label}
+    </button>
+  );
+}
+
+const miniSpinner = {
+  width: '14px',
+  height: '14px',
+  border: '2px solid rgba(255,255,255,0.3)',
+  borderTopColor: '#fff',
+  borderRadius: '50%',
+  animation: 'spin 0.6s linear infinite',
+  display: 'block',
+};
+
 const styles = {
   card: {
-    background: '#1a1a2e',
-    borderRadius: '10px',
-    padding: '18px',
-    color: '#eee',
-    border: '1px solid #2a2a4a',
+    background: 'var(--color-muted)',
+    borderRadius: 'var(--radius-md)',
+    padding: '20px',
+    border: '1px solid var(--color-border)',
+    transition: 'border-color var(--transition-fast), box-shadow var(--transition-fast)',
+    animation: 'slideUp 0.3s ease both',
   },
-  header: {
+  top: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '14px',
+    marginBottom: '16px',
+  },
+  topLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    minWidth: 0,
   },
   typeBadge: {
-    background: '#e94560',
-    color: '#fff',
+    background: 'var(--color-accent)',
+    color: '#020617',
     padding: '2px 8px',
     borderRadius: '4px',
-    fontSize: '0.75rem',
+    fontSize: '0.72rem',
     fontWeight: 700,
-    marginRight: '10px',
+    fontFamily: 'var(--font-heading)',
+    flexShrink: 0,
   },
-  name: { fontSize: '1.05rem', fontWeight: 600 },
+  name: {
+    fontSize: '1rem',
+    fontWeight: 600,
+    color: 'var(--color-foreground)',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
   status: {
-    padding: '3px 10px',
-    borderRadius: '12px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '4px 12px',
+    borderRadius: '20px',
     fontSize: '0.75rem',
-    fontWeight: 700,
-    color: '#000',
+    fontWeight: 600,
+    fontFamily: 'var(--font-heading)',
     textTransform: 'uppercase',
+    flexShrink: 0,
   },
-  details: {
+  statusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: '50%',
+    display: 'inline-block',
+  },
+  meta: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
-    gap: '6px',
-    marginBottom: '14px',
-    fontSize: '0.88rem',
+    gap: '8px',
+    marginBottom: '16px',
   },
-  detail: { color: '#aaa' },
   error: {
-    background: '#3d1f1f',
-    color: '#ff6b6b',
-    padding: '8px',
-    borderRadius: '4px',
-    fontSize: '0.8rem',
-    marginBottom: '10px',
+    background: 'rgba(239, 68, 68, 0.1)',
+    border: '1px solid rgba(239, 68, 68, 0.3)',
+    color: '#FCA5A5',
+    padding: '8px 12px',
+    borderRadius: 'var(--radius-sm)',
+    fontSize: '0.82rem',
+    marginBottom: '12px',
   },
   actions: {
     display: 'flex',
     flexWrap: 'wrap',
-    gap: '8px',
-    marginBottom: '12px',
+    gap: '6px',
+    marginBottom: '14px',
   },
   actionBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '5px',
     padding: '6px 12px',
-    borderRadius: '5px',
+    borderRadius: 'var(--radius-sm)',
     border: 'none',
-    background: '#4ade80',
-    color: '#000',
-    fontWeight: 600,
-    fontSize: '0.82rem',
+    fontSize: '0.8rem',
+    fontWeight: 500,
+    fontFamily: 'var(--font-body)',
     cursor: 'pointer',
+    transition: 'opacity var(--transition-fast)',
   },
   snapSection: {
-    borderTop: '1px solid #2a2a4a',
-    paddingTop: '10px',
+    borderTop: '1px solid var(--color-border)',
+    paddingTop: '12px',
   },
   snapToggle: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
     background: 'transparent',
     border: 'none',
-    color: '#e94560',
+    color: '#94A3B8',
+    fontSize: '0.82rem',
+    fontWeight: 500,
     cursor: 'pointer',
-    fontSize: '0.85rem',
-    fontWeight: 600,
-    padding: 0,
+    padding: '4px 0',
   },
   snapContent: {
     marginTop: '10px',
+    paddingLeft: '4px',
   },
   snapForm: {
     display: 'flex',
@@ -313,23 +350,23 @@ const styles = {
   },
   snapInput: {
     flex: 1,
-    padding: '6px 10px',
-    borderRadius: '4px',
-    border: '1px solid #333',
-    background: '#16213e',
-    color: '#eee',
+    padding: '8px 10px',
+    borderRadius: 'var(--radius-sm)',
+    border: '1px solid var(--color-border)',
+    background: 'var(--color-background)',
+    color: 'var(--color-foreground)',
     fontSize: '0.85rem',
     outline: 'none',
   },
   snapCreateBtn: {
-    padding: '6px 12px',
-    borderRadius: '4px',
+    padding: '8px 14px',
+    borderRadius: 'var(--radius-sm)',
     border: 'none',
-    background: '#e94560',
-    color: '#fff',
+    background: 'var(--color-accent)',
+    color: '#020617',
     fontWeight: 600,
-    cursor: 'pointer',
     fontSize: '0.82rem',
+    cursor: 'pointer',
   },
   snapList: {
     display: 'flex',
@@ -340,21 +377,18 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '6px 8px',
-    background: '#16213e',
-    borderRadius: '4px',
+    padding: '8px 10px',
+    background: 'var(--color-background)',
+    borderRadius: 'var(--radius-sm)',
     fontSize: '0.85rem',
   },
-  snapActions: {
-    display: 'flex',
-    gap: '4px',
-  },
-  snapSmallBtn: {
+  snapActionBtn: {
     background: 'transparent',
     border: 'none',
-    color: '#4ade80',
+    color: '#22C55E',
     cursor: 'pointer',
-    fontSize: '1rem',
     padding: '2px 6px',
+    borderRadius: '4px',
+    display: 'flex',
   },
 };

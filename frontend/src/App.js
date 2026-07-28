@@ -6,85 +6,67 @@ import Register from './components/Register';
 import Dashboard from './components/Dashboard';
 import CreateInstance from './components/CreateInstance';
 import Navbar from './components/Navbar';
+import './styles.css';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
-  if (loading) return <div style={styles.loading}>Loading...</div>;
+  if (loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
   return (
     <>
       <Navbar />
-      {children}
+      <main style={{ paddingTop: '64px', minHeight: '100dvh' }}>{children}</main>
     </>
   );
 }
 
 function PublicRoute({ children }) {
   const { user, loading } = useAuth();
-  if (loading) return <div style={styles.loading}>Loading...</div>;
+  if (loading) return <LoadingScreen />;
   if (user) return <Navigate to="/dashboard" replace />;
   return children;
 }
+
+function LoadingScreen() {
+  return (
+    <div style={loadingStyles.container}>
+      <div style={loadingStyles.spinner} />
+      <p style={{ color: 'var(--color-border)', marginTop: '16px' }}>Loading...</p>
+    </div>
+  );
+}
+
+const loadingStyles = {
+  container: {
+    minHeight: '100dvh',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'var(--color-background)',
+  },
+  spinner: {
+    width: '32px',
+    height: '32px',
+    border: '3px solid var(--color-border)',
+    borderTopColor: 'var(--color-accent)',
+    borderRadius: '50%',
+    animation: 'spin 0.8s linear infinite',
+  },
+};
 
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <div style={styles.app}>
-          <Routes>
-            <Route
-              path="/login"
-              element={
-                <PublicRoute>
-                  <Login />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path="/register"
-              element={
-                <PublicRoute>
-                  <Register />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/create"
-              element={
-                <ProtectedRoute>
-                  <CreateInstance />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </div>
+        <Routes>
+          <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+          <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/create" element={<ProtectedRoute><CreateInstance /></ProtectedRoute>} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
       </AuthProvider>
     </BrowserRouter>
   );
 }
-
-const styles = {
-  app: {
-    minHeight: '100vh',
-    background: '#0f0f23',
-    fontFamily: '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif',
-  },
-  loading: {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: '#0f0f23',
-    color: '#888',
-    fontSize: '1.2rem',
-  },
-};
