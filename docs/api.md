@@ -34,12 +34,21 @@ HTTP status codes:
 - `200` — OK
 - `201` — Created
 - `400` — Bad request (validation)
-- `401` — Unauthorized (missing/invalid token)
+- `401` — Unauthorized (missing/invalid/expired token)
 - `403` — Forbidden (admin-only)
 - `404` — Not found
 - `409` — Conflict (email already registered)
 - `429` — Too many requests (rate limit)
 - `500` — Server error
+- `507` — IP allocation failed (pool exhausted)
+
+**JWT error codes** (all 401 responses include a `code` field):
+| Code | Meaning |
+|------|---------|
+| `TOKEN_EXPIRED` | Token has expired (frontend auto-refreshes) |
+| `TOKEN_INVALID` | Token is malformed or tampered |
+| `TOKEN_NOT_ACTIVE` | Token is not yet valid (`nbf` claim) |
+| `TOKEN_ERROR` | Unknown authentication failure |
 
 ---
 
@@ -109,6 +118,24 @@ Authenticate and get a token. Rate-limited to 20 req/15min.
 
 **Errors:**
 - `401` — Invalid email or password
+
+---
+
+### POST /auth/refresh
+
+Issue a new JWT token. Requires a valid (not expired) token in the `Authorization` header.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response** (200):
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIs..."
+}
+```
+
+**Errors:**
+- `401` — Missing, expired, or invalid token (with `code` field)
 
 ---
 

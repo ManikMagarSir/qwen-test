@@ -75,7 +75,7 @@ Browser WebSocket ──> Backend SSH ──> Proxmox Host ──lxc-attach─�
 
 1. Frontend opens WebSocket to `ws://backend:5000/api/console/:id?token=`
 2. Backend verifies JWT and instance ownership
-3. Backend SSHes into the Proxmox host (credentials from `.env`)
+3. Backend SSHes into the Proxmox host using the private key at `.ssh/cloud` (RSA 4096, auto-generated)
 4. Runs `lxc-attach -n {vmid}` which enters the container's root shell
 5. Bidirectional base64 streaming: WebSocket ↔ SSH ↔ container
 6. Resize messages forwarded to PTY via `stream.setWindow(rows, cols, 0, 0)`
@@ -122,13 +122,17 @@ Templates are fetched from Proxmox storage via `GET /nodes/{node}/storage/{stora
 | Measure | Implementation |
 |---------|---------------|
 | Password hashing | bcrypt, 12 rounds |
-| JWT expiry | 7 days |
+| JWT expiry | 7 days (with on-demand refresh via `POST /api/auth/refresh`) |
+| JWT error granularity | `TOKEN_EXPIRED`, `TOKEN_INVALID`, `TOKEN_NOT_ACTIVE`, `TOKEN_ERROR` |
 | Rate limiting | Auth: 20 req/15min. Global: 100 req/15min |
-| CORS | Whitelist via `CORS_ORIGINS` env var, blocked in production |
+| CORS | Strict whitelist via `CORS_ORIGINS` env var only (no dev bypass) |
 | Input validation | Joi schemas on all POST/PUT endpoints |
 | Error sanitization | Winston logger strips passwords from log output |
 | Auth middleware | Every route except register/login requires valid JWT |
 | Ownership check | All instance queries filter by `owner: req.user._id` |
+| Console auth | SSH key (`privateKey`) instead of root password |
+| IP allocation | Atomic `findOneAndUpdate` with `{ ip, instance: null }` |
+| Create flow | Wrapped in MongoDB session with `commitTransaction` / `abortTransaction` |
 | `.env` | Excluded from git via `.gitignore` |
 | `.ssh/` | Excluded from git via `.gitignore` |
 

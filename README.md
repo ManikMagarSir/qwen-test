@@ -69,13 +69,15 @@ Edit `backend/.env`:
 |----------|-------------|
 | `MONGO_URI` | MongoDB connection string |
 | `JWT_SECRET` | Secret for signing tokens |
-| `PROXMOX_HOST` | IP of your Proxmox host |
+| `PROXMOX_HOST` | IP of your Proxmox host (also used for SSH console) |
 | `PROXMOX_PORT` | API port (default 8006) |
 | `PROXMOX_USER` | Proxmox API user (e.g. `root@pam`) |
 | `PROXMOX_PASSWORD` | Proxmox API password |
 | `PROXMOX_NODE` | Proxmox node name |
 | `CORS_ORIGINS` | Comma-separated allowed origins (default: `http://localhost:3000`) |
 | `LOG_LEVEL` | Winston log level (default: `info`) |
+
+> **SSH keys**: An RSA keypair is auto-generated at `.ssh/cloud` / `.ssh/cloud.pub` on first start. The public key is injected into new containers for SSH access, and the private key is used by the console to connect to the Proxmox host. Add the public key to your Proxmox host's `authorized_keys` if needed.
 
 ### 3. Run
 
@@ -126,6 +128,9 @@ See `docs/deployment.md` for production configuration.
 | POST | `/api/auth/register` | Register a new user (rate-limited) |
 | POST | `/api/auth/login` | Login (rate-limited) |
 | GET | `/api/auth/me` | Get current user |
+| POST | `/api/auth/refresh` | Refresh JWT token (requires valid token) |
+
+> **JWT error codes**: Auth middleware returns `code` field: `TOKEN_EXPIRED`, `TOKEN_INVALID`, `TOKEN_NOT_ACTIVE`, or `TOKEN_ERROR`. The frontend auto-refreshes expired tokens and logs out on invalid tokens.
 
 ### Profile
 | Method | Path | Description |

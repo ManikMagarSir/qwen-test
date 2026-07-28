@@ -205,6 +205,8 @@ sudo systemctl restart mongod
 
 ## 4. Environment Security
 
+> **SSH keys**: The backend auto-generates an RSA 4096 keypair at `.ssh/cloud` / `.ssh/cloud.pub` on first start. The **private key** (`.ssh/cloud`) is used by the console WebSocket to SSH into the Proxmox host for `lxc-attach`. The **public key** (`.ssh/cloud.pub`) is injected into every new container during creation. Ensure the Proxmox host has the public key in `~/.ssh/authorized_keys` for console to work.
+
 ### Production `.env`
 
 ```ini
@@ -219,6 +221,8 @@ PROXMOX_NODE=pve
 CORS_ORIGINS=https://cloud.example.com
 LOG_LEVEL=warn
 ```
+
+> **CORS is strict**: Only origins listed in `CORS_ORIGINS` are allowed. There is no development bypass — set this to your frontend domain(s) in production.
 
 ### File permissions
 
