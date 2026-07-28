@@ -218,6 +218,7 @@ PROXMOX_PORT=8006
 PROXMOX_USER=cloudmgr@pve
 PROXMOX_PASSWORD=<strong-password>
 PROXMOX_NODE=pve
+PROXMOX_SSL_VERIFY=true
 CORS_ORIGINS=https://cloud.example.com
 LOG_LEVEL=warn
 ```
@@ -238,8 +239,22 @@ chown -R cloudmgr:cloudmgr /opt/cloud
 In production the backend applies:
 - **Global:** 100 requests per 15 minutes per IP
 - **Auth:** 20 requests per 15 minutes per IP
+- **WebSocket (console):** 10 connections per 60 seconds per IP
+- **WebSocket (monitor):** 20 connections per 60 seconds per IP
 
-These limits are configured in `server.js` and `routes/auth.js`. Adjust `max` values in the `rateLimit()` calls as needed.
+These limits are configured in `server.js`, `routes/auth.js`, `console.js`, and `monitor.js`. Adjust `max` values as needed.
+
+### Account lockout
+
+After **5 failed login attempts**, the account is locked for **15 minutes**. Lockout duration and threshold are in `backend/models/User.js` (`MAX_LOGIN_ATTEMPTS`, `LOCK_TIME`).
+
+### JWT token versioning
+
+Every login increments a `tokenVersion` counter stored in the user document. All existing tokens for that user are invalidated on next request. This allows forced logout (admins can increment `tokenVersion` to sign out a user everywhere).
+
+### Request ID
+
+Every HTTP response includes a `X-Request-Id` header for correlating errors across logs, the client, and the server.
 
 ---
 

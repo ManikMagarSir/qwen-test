@@ -124,12 +124,13 @@ LOG_LEVEL=info
 |----------|-------------|
 | `PORT` | Backend port (default: 5000) |
 | `MONGO_URI` | MongoDB connection string |
-| `JWT_SECRET` | Secret for signing tokens |
+| `JWT_SECRET` | Secret for signing tokens (min 32 chars, server fails to start otherwise) |
 | `PROXMOX_HOST` | IP of your Proxmox host |
 | `PROXMOX_PORT` | API port (default: 8006) |
 | `PROXMOX_USER` | Proxmox API user |
 | `PROXMOX_PASSWORD` | Proxmox API password |
 | `PROXMOX_NODE` | Proxmox node name |
+| `PROXMOX_SSL_VERIFY` | Verify Proxmox TLS certificate (default: false) |
 | `CORS_ORIGINS` | Comma-separated allowed CORS origins |
 | `LOG_LEVEL` | Winston log level (debug, info, warn, error) |
 
