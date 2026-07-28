@@ -10,7 +10,33 @@ const router = express.Router();
 
 router.get('/', auth, async (req, res) => {
   try {
-    const instances = await Instance.find({ owner: req.user._id }).sort('-createdAt');
+    let instances = await Instance.find({ owner: req.user._id }).sort('-createdAt').lean();
+
+    const results = await Promise.allSettled(
+      instances.map(inst =>
+        proxmox.getInstance(inst.node, inst.type, inst.vmid)
+          .then(status => ({ _id: inst._id.toString(), status: status.status }))
+          .catch(() => null)
+      )
+    );
+
+    const bulkOps = [];
+    results.forEach((r, i) => {
+      if (r.status === 'fulfilled' && r.value && r.value.status && r.value.status !== instances[i].status) {
+        bulkOps.push({
+          updateOne: {
+            filter: { _id: instances[i]._id },
+            update: { $set: { status: r.value.status } },
+          },
+        });
+        instances[i].status = r.value.status;
+      }
+    });
+
+    if (bulkOps.length > 0) {
+      await Instance.bulkWrite(bulkOps);
+    }
+
     res.json({ instances });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -281,6 +307,42 @@ router.post('/:id/snapshots/:snapname/rollback', auth, async (req, res) => {
 
     await proxmox.rollbackSnapshot(instance.node, instance.type, instance.vmid, req.params.snapname);
     res.json({ message: 'Snapshot rolled back' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.put('/:id/resize', auth, async (req, res) => {
+  try {
+    const instance = await Instance.findOne({ _id: req.params.id, owner: req.user._id });
+    if (!instance) return res.status(404).json({ error: 'Instance not found' });
+
+    const { cpus, memory, disk } = req.body;
+
+    if (cpus != null || memory != null) {
+      const updateParams = {};
+      if (cpus != null) {
+        if (cpus < 1 || cpus > 32) return res.status(400).json({ error: 'CPU must be 1–32' });
+        updateParams.cores = cpus;
+      }
+      if (memory != null) {
+        if (memory < 128 || memory > 131072) return res.status(400).json({ error: 'Memory must be 128–131072 MB' });
+        updateParams.memory = memory;
+      }
+      await proxmox.updateLxc(instance.node, instance.vmid, updateParams);
+    }
+
+    if (disk != null) {
+      if (disk < 1 || disk > 1000) return res.status(400).json({ error: 'Disk must be 1–1000 GB' });
+      await proxmox.resizeLxcDisk(instance.node, instance.vmid, disk);
+    }
+
+    if (cpus != null) instance.cpus = cpus;
+    if (memory != null) instance.memory = memory;
+    if (disk != null) instance.disk = disk;
+    await instance.save();
+
+    res.json({ message: 'Instance resized', instance });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

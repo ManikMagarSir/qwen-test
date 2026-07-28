@@ -67,7 +67,7 @@ function setupConsole(server) {
   server.on('upgrade', (request, socket, head) => {
     const url = new URL(request.url, `http://${request.headers.host}`);
     const m = url.pathname.match(/^\/api\/console\/([a-f0-9]+)$/);
-    if (!m) { socket.destroy(); return; }
+    if (!m) { return; }
     const token = url.searchParams.get('token');
     if (!token) { socket.destroy(); return; }
 

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import api from '../api/axios';
 import TerminalConsole from './TerminalConsole';
+import ResizeModal from './ResizeModal';
 import {
   Play, Square, RefreshCw, Pause, Monitor, Trash2,
-  Cpu, HardDrive, Database, Globe, Camera, ChevronDown, ChevronRight, RotateCcw, X, Terminal,
+  Cpu, HardDrive, Database, Globe, Camera, ChevronDown, ChevronRight, RotateCcw, X, Terminal, Sliders,
 } from 'lucide-react';
 
 export default function InstanceCard({ instance, onDelete, onStatusChange }) {
@@ -12,6 +13,7 @@ export default function InstanceCard({ instance, onDelete, onStatusChange }) {
   const [snapName, setSnapName] = useState('');
   const [showSnapshots, setShowSnapshots] = useState(false);
   const [showConnect, setShowConnect] = useState(false);
+  const [showResize, setShowResize] = useState(false);
   const [error, setError] = useState('');
 
   const doAction = async (action, label) => {
@@ -104,6 +106,12 @@ export default function InstanceCard({ instance, onDelete, onStatusChange }) {
 
   const sc = statusColors[instance.status] || statusColors.unknown;
 
+  const handleResized = (updated) => {
+    if (updated.cpus) instance.cpus = updated.cpus;
+    if (updated.memory) instance.memory = updated.memory;
+    if (updated.disk) instance.disk = updated.disk;
+  };
+
   return (
     <div style={styles.card}>
       <div style={styles.top}>
@@ -133,6 +141,7 @@ export default function InstanceCard({ instance, onDelete, onStatusChange }) {
         {instance.status === 'running' && (
           <>
             <ActionBtn onClick={() => setShowConnect(true)} icon={Terminal} label="Console" color="#3B82F6" />
+            <ActionBtn onClick={() => setShowResize(true)} icon={Sliders} label="Resize" color="#8B5CF6" />
             <ActionBtn onClick={() => doAction('stop', 'stop')} loading={actionLoading === 'stop'} icon={Square} label="Stop" color="#EF4444" />
             <ActionBtn onClick={() => doAction('reboot', 'reboot')} loading={actionLoading === 'reboot'} icon={RefreshCw} label="Reboot" color="#F59E0B" />
             <ActionBtn onClick={() => doAction('suspend', 'suspend')} loading={actionLoading === 'suspend'} icon={Pause} label="Pause" color="#F97316" />
@@ -185,6 +194,7 @@ export default function InstanceCard({ instance, onDelete, onStatusChange }) {
         )}
       </div>
 
+      {showResize && <ResizeModal instance={instance} onClose={() => setShowResize(false)} onResized={handleResized} />}
       {showConnect && <TerminalConsole instance={instance} onClose={() => setShowConnect(false)} />}
     </div>
   );

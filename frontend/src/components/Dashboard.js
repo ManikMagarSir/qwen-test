@@ -22,6 +22,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchInstances();
+    const interval = setInterval(fetchInstances, 15000);
+    return () => clearInterval(interval);
   }, [fetchInstances]);
 
   const handleDelete = (id) => {

@@ -227,6 +227,31 @@ async function getInterfaces(node, type, vmid) {
   return await api(`/nodes/${node}/${type}/${vmid}/interfaces`);
 }
 
+async function updateLxc(node, vmid, params) {
+  const body = new URLSearchParams();
+  if (params.cores != null) body.append('cores', params.cores);
+  if (params.memory != null) body.append('memory', params.memory);
+  if (params.hostname) body.append('hostname', params.hostname);
+  if (params.nameserver) body.append('nameserver', params.nameserver);
+  if (params.searchdomain) body.append('searchdomain', params.searchdomain);
+  return await api(`/nodes/${node}/lxc/${vmid}/config`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body,
+  });
+}
+
+async function resizeLxcDisk(node, vmid, diskG) {
+  const body = new URLSearchParams();
+  body.append('disk', 'rootfs');
+  body.append('size', `${diskG}G`);
+  return await api(`/nodes/${node}/lxc/${vmid}/resize`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body,
+  });
+}
+
 async function termProxy(node, type, vmid) {
   return await api(`/nodes/${node}/${type}/${vmid}/termproxy`, {
     method: 'POST',
@@ -252,6 +277,8 @@ module.exports = {
   deleteSnapshot,
   rollbackSnapshot,
   getInstanceConfig,
+  updateLxc,
+  resizeLxcDisk,
   getNodeStatus,
   getClusterResources,
   listTemplates,
