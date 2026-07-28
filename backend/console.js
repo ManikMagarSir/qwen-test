@@ -6,11 +6,20 @@ const { Client } = require('ssh2');
 const Instance = require('./models/Instance');
 const User = require('./models/User');
 
+const WsRateLimiter = require('./utils/wsRateLimiter');
+
 function setupConsole(server) {
-  const wss = new WebSocketServer({ noServer: true });
+  const wss = new WebSocketServer({ noServer: true, maxPayload: 1024 * 64 });
+  const rateLimiter = new WsRateLimiter(60, 10);
 
   wss.on('connection', async (ws, req) => {
     const { vmid } = req;
+
+    const ip = req.socket.remoteAddress;
+    if (rateLimiter.isRateLimited(ip)) {
+      ws.close(4008, 'Rate limited');
+      return;
+    }
 
     const ssh = new Client();
     let cols = 80, rows = 24;
@@ -53,7 +62,7 @@ function setupConsole(server) {
     });
 
     ssh.on('error', (err) => {
-      ws.send(JSON.stringify({ type: 'error', message: `SSH to Proxmox: ${err.message}` }));
+      ws.send(JSON.stringify({ type: 'error', message: 'Failed to connect to instance shell' }));
       ws.close();
     });
 

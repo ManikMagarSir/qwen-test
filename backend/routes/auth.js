@@ -17,9 +17,11 @@ const authLimiter = rateLimit({
 });
 
 function signToken(user) {
-  return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
-    expiresIn: '7d',
-  });
+  return jwt.sign(
+    { id: user._id, role: user.role, tokenVersion: user.tokenVersion },
+    process.env.JWT_SECRET,
+    { expiresIn: '7d' },
+  );
 }
 
 router.post('/register', authLimiter, validate('register'), async (req, res, next) => {
@@ -42,9 +44,21 @@ router.post('/login', authLimiter, validate('login'), async (req, res, next) => 
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user || !(await user.comparePassword(password))) {
+    if (!user) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
+
+    if (user.isLocked()) {
+      const remain = Math.ceil((user.lockUntil - new Date()) / 60000);
+      return res.status(429).json({ error: `Account locked. Try again in ${remain} minute(s)` });
+    }
+
+    if (!(await user.comparePassword(password))) {
+      await user.incrementLoginAttempts();
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    await user.resetLoginAttempts();
     const token = signToken(user);
     res.json({ token, user });
   } catch (err) {

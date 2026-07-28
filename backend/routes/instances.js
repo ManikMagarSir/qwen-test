@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const express = require('express');
-const { auth } = require('../middleware/auth');
+const { auth, adminOnly } = require('../middleware/auth');
 const Instance = require('../models/Instance');
 const proxmox = require('../services/proxmox');
 const { allocateIP, releaseIP, getIPByInstance } = require('../services/ipam');
@@ -45,7 +45,7 @@ router.get('/', auth, async (req, res, next) => {
   }
 });
 
-router.get('/all', auth, async (req, res, next) => {
+router.get('/all', auth, adminOnly, async (req, res, next) => {
   try {
     const node = process.env.PROXMOX_NODE;
     const list = await proxmox.listInstances(node);
@@ -55,7 +55,7 @@ router.get('/all', auth, async (req, res, next) => {
   }
 });
 
-router.get('/cluster', auth, async (req, res, next) => {
+router.get('/cluster', auth, adminOnly, async (req, res, next) => {
   try {
     const resources = await proxmox.getClusterResources();
     res.json({ resources });
@@ -64,13 +64,13 @@ router.get('/cluster', auth, async (req, res, next) => {
   }
 });
 
-router.get('/node', auth, async (req, res, next) => {
+router.get('/node', auth, adminOnly, async (req, res, next) => {
   try {
     const node = process.env.PROXMOX_NODE;
     const status = await proxmox.getNodeStatus(node);
     res.json({ status });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
@@ -104,7 +104,7 @@ router.post('/create', auth, validate('createInstance'), async (req, res, next) 
   } catch (ipErr) {
     await session.abortTransaction();
     session.endSession();
-    return res.status(507).json({ error: `IP allocation failed: ${ipErr.message}` });
+    return res.status(507).json({ error: 'IP allocation failed' });
   }
   session.endSession();
 
@@ -134,12 +134,13 @@ router.post('/create', auth, validate('createInstance'), async (req, res, next) 
     if (instanceId) {
       await Instance.deleteOne({ _id: instanceId }).catch(() => {});
     }
-    return res.status(500).json({ error: proxErr.message });
+    logger.error(`Instance creation failed: ${proxErr.message}`);
+    return res.status(500).json({ error: 'Failed to create instance' });
   }
 
   const instance = await Instance.findOneAndUpdate(
-    { vmid: Number(vmid) },
-    { $set: { status: 'stopped', name, password } },
+    { _id: instanceId },
+    { $set: { status: 'stopped' } },
     { new: true },
   );
 
@@ -157,7 +158,7 @@ router.get('/:id', auth, async (req, res, next) => {
 
     res.json({ instance, status, interfaces });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
@@ -172,7 +173,7 @@ router.delete('/:id', auth, async (req, res, next) => {
 
     res.json({ message: 'Instance deleted' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
@@ -187,7 +188,7 @@ router.post('/:id/start', auth, async (req, res, next) => {
 
     res.json({ message: 'Instance started', instance });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
@@ -202,7 +203,7 @@ router.post('/:id/stop', auth, async (req, res, next) => {
 
     res.json({ message: 'Instance stopped', instance });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
@@ -214,7 +215,7 @@ router.post('/:id/reboot', auth, async (req, res, next) => {
     await proxmox.rebootInstance(instance.node, instance.type, instance.vmid);
     res.json({ message: 'Instance rebooting' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
@@ -229,7 +230,7 @@ router.post('/:id/suspend', auth, async (req, res, next) => {
 
     res.json({ message: 'Instance suspended', instance });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
@@ -256,7 +257,7 @@ router.get('/:id/snapshots', auth, async (req, res, next) => {
     const snapshots = await proxmox.listSnapshots(instance.node, instance.type, instance.vmid);
     res.json({ snapshots });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
@@ -271,7 +272,7 @@ router.post('/:id/snapshots', auth, validate('createSnapshot'), async (req, res,
     await proxmox.createSnapshot(instance.node, instance.type, instance.vmid, snapname, description);
     res.status(201).json({ message: 'Snapshot created' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
@@ -283,7 +284,7 @@ router.delete('/:id/snapshots/:snapname', auth, async (req, res, next) => {
     await proxmox.deleteSnapshot(instance.node, instance.type, instance.vmid, req.params.snapname);
     res.json({ message: 'Snapshot deleted' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
@@ -295,7 +296,7 @@ router.post('/:id/snapshots/:snapname/rollback', auth, async (req, res, next) =>
     await proxmox.rollbackSnapshot(instance.node, instance.type, instance.vmid, req.params.snapname);
     res.json({ message: 'Snapshot rolled back' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
@@ -352,7 +353,7 @@ router.get('/:id/interfaces', auth, async (req, res, next) => {
     const interfaces = await proxmox.getInterfaces(instance.node, instance.type, instance.vmid);
     res.json({ interfaces });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 

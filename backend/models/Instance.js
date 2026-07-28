@@ -49,10 +49,6 @@ const instanceSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
-  password: {
-    type: String,
-    default: '',
-  },
 }, { timestamps: true });
 
 instanceSchema.index({ owner: 1, vmid: 1 }, { unique: true });

@@ -24,6 +24,18 @@ const userSchema = new mongoose.Schema({
     enum: ['user', 'admin'],
     default: 'user',
   },
+  loginAttempts: {
+    type: Number,
+    default: 0,
+  },
+  lockUntil: {
+    type: Date,
+    default: null,
+  },
+  tokenVersion: {
+    type: Number,
+    default: 0,
+  },
 }, { timestamps: true });
 
 userSchema.pre('save', async function (next) {
@@ -36,9 +48,30 @@ userSchema.methods.comparePassword = async function (candidate) {
   return bcrypt.compare(candidate, this.password);
 };
 
+userSchema.methods.isLocked = function () {
+  return this.lockUntil && this.lockUntil > new Date();
+};
+
+userSchema.methods.incrementLoginAttempts = async function () {
+  this.loginAttempts += 1;
+  if (this.loginAttempts >= 5) {
+    this.lockUntil = new Date(Date.now() + 15 * 60 * 1000);
+    this.loginAttempts = 0;
+  }
+  await this.save();
+};
+
+userSchema.methods.resetLoginAttempts = async function () {
+  this.loginAttempts = 0;
+  this.lockUntil = null;
+  await this.save();
+};
+
 userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.password;
+  delete obj.loginAttempts;
+  delete obj.lockUntil;
   return obj;
 };
 

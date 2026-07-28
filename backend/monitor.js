@@ -3,12 +3,21 @@ const jwt = require('jsonwebtoken');
 const Instance = require('./models/Instance');
 const User = require('./models/User');
 const proxmox = require('./services/proxmox');
+const WsRateLimiter = require('./utils/wsRateLimiter');
 
 function setupMonitor(server) {
-  const wss = new WebSocketServer({ noServer: true });
+  const wss = new WebSocketServer({ noServer: true, maxPayload: 1024 * 256 });
+  const rateLimiter = new WsRateLimiter(60, 20);
 
   wss.on('connection', async (ws, req) => {
     const { user } = req;
+
+    const ip = req.socket.remoteAddress;
+    if (rateLimiter.isRateLimited(ip)) {
+      ws.close(4008, 'Rate limited');
+      return;
+    }
+
     let interval;
 
     async function pushMetrics() {
@@ -31,7 +40,7 @@ function setupMonitor(server) {
         }
         ws.send(JSON.stringify({ type: 'update', instances, details: detailMap }));
       } catch (err) {
-        ws.send(JSON.stringify({ type: 'error', message: err.message }));
+        ws.send(JSON.stringify({ type: 'error', message: 'Failed to fetch metrics' }));
       }
     }
 

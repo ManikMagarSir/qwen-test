@@ -13,6 +13,9 @@ const auth = async (req, res, next) => {
     if (!user) {
       return res.status(401).json({ error: 'User not found' });
     }
+    if (decoded.tokenVersion != null && decoded.tokenVersion !== user.tokenVersion) {
+      return res.status(401).json({ error: 'Session expired, please login again', code: 'TOKEN_EXPIRED' });
+    }
     req.user = user;
     next();
   } catch (err) {
