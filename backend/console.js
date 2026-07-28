@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const { Client } = require('ssh2');
 const Instance = require('./models/Instance');
 const User = require('./models/User');
+const logger = require('./utils/logger');
 
 const WsRateLimiter = require('./utils/wsRateLimiter');
 
@@ -62,12 +63,21 @@ function setupConsole(server) {
     });
 
     ssh.on('error', (err) => {
+      logger.error(`Console SSH failed for VMID ${vmid}: ${err.message}`);
       ws.send(JSON.stringify({ type: 'error', message: 'Failed to connect to instance shell' }));
-      ws.close();
+      ws.close(4005, 'SSH connection failed');
     });
 
-    const keyPath = path.join(__dirname, '../.ssh/cloud');
-    const privateKey = fs.readFileSync(keyPath, 'utf8');
+    let privateKey;
+    try {
+      const keyPath = path.join(__dirname, '../.ssh/cloud');
+      privateKey = fs.readFileSync(keyPath, 'utf8');
+    } catch (e) {
+      logger.error(`Console SSH key not found: ${e.message}`);
+      ws.send(JSON.stringify({ type: 'error', message: 'Failed to connect to instance shell' }));
+      ws.close(4005, 'SSH key missing');
+      return;
+    }
 
     ssh.connect({
       host: process.env.PROXMOX_HOST,

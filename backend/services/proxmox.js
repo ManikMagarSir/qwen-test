@@ -10,7 +10,7 @@ const baseUrl = () => {
   return `https://${host}:${port}/api2/json`;
 };
 
-const rejectUnauthorized = process.env.PROXMOX_SELF_SIGNED !== 'false';
+const rejectUnauthorized = process.env.PROXMOX_SSL_VERIFY === 'true';
 const agent = new (require('https').Agent)({
   rejectUnauthorized,
 });
