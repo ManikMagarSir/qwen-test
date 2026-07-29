@@ -9,24 +9,24 @@ const pageTitles = {
   '/profile': 'Profile',
 };
 
-export default function Navbar() {
+export default function Navbar({ collapsed }) {
   const { user } = useAuth();
   const location = useLocation();
-
   const title = pageTitles[location.pathname] || 'Cloud Manager';
 
   return (
-    <nav style={styles.nav}>
-      <div style={styles.inner}>
-        <div style={styles.left}>
-          <h2 style={styles.title}>{title}</h2>
-        </div>
-        <div style={styles.right}>
-          <div style={styles.userBadge}>
-            <div style={styles.avatar}>
+    <nav style={{
+      ...s.nav,
+      left: collapsed ? '64px' : '240px',
+    }}>
+      <div style={s.inner}>
+        <h2 style={s.title}>{title}</h2>
+        <div style={s.right}>
+          <div style={s.userBadge}>
+            <div style={s.avatar}>
               {(user?.name || user?.email || 'U')[0].toUpperCase()}
             </div>
-            <span style={styles.userName}>{user?.name || user?.email}</span>
+            <span style={s.userName}>{user?.name || user?.email}</span>
           </div>
         </div>
       </div>
@@ -34,65 +34,37 @@ export default function Navbar() {
   );
 }
 
-const styles = {
+const s = {
   nav: {
-    position: 'fixed',
-    top: 0,
-    right: 0,
-    left: 0,
-    zIndex: 80,
-    background: 'rgba(15, 23, 42, 0.85)',
-    backdropFilter: 'blur(16px)',
-    WebkitBackdropFilter: 'blur(16px)',
-    borderBottom: '1px solid rgba(51, 65, 85, 0.3)',
+    position: 'fixed', top: 0, right: 0, zIndex: 80,
+    transition: 'left var(--transition-slow)',
+    background: 'rgba(5, 7, 10, 0.8)',
+    backdropFilter: 'blur(24px)',
+    WebkitBackdropFilter: 'blur(24px)',
+    borderBottom: '1px solid var(--glass-border)',
   },
   inner: {
     height: '64px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '0 28px',
-  },
-  left: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    padding: '0 32px',
   },
   title: {
-    fontFamily: 'var(--font-heading)',
-    fontSize: '1.1rem',
-    fontWeight: 600,
-    color: 'var(--color-foreground)',
+    fontFamily: 'var(--font)', fontSize: '1.05rem', fontWeight: 600,
+    color: 'var(--text-primary)',
   },
-  right: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-  },
+  right: { display: 'flex', alignItems: 'center', gap: '12px' },
   userBadge: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    padding: '6px 12px',
-    borderRadius: 'var(--radius-sm)',
-    background: 'rgba(255, 255, 255, 0.03)',
-    border: '1px solid rgba(51, 65, 85, 0.3)',
+    display: 'flex', alignItems: 'center', gap: '10px',
+    padding: '4px 14px 4px 4px',
+    borderRadius: 'var(--radius-full)',
+    background: 'var(--glass-bg)',
+    border: '1px solid var(--glass-border)',
   },
   avatar: {
-    width: '28px',
-    height: '28px',
-    borderRadius: '6px',
-    background: 'rgba(34, 197, 94, 0.15)',
-    color: '#22C55E',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '0.78rem',
-    fontWeight: 700,
+    width: '28px', height: '28px', borderRadius: 'var(--radius-full)',
+    background: 'var(--accent-dim)', color: 'var(--accent)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: '0.78rem', fontWeight: 700,
   },
-  userName: {
-    color: '#CBD5E1',
-    fontSize: '0.85rem',
-    fontWeight: 500,
-  },
+  userName: { color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 500 },
 };

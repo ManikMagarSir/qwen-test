@@ -146,24 +146,26 @@ export default function Profile() {
           <form onSubmit={handlePasswordChange}>
             <div style={styles.field}>
               <label style={styles.label}>Current Password</label>
-              <input
-                style={styles.input}
-                type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="Enter current password"
-                required={!!newPassword}
-              />
+                <input
+                  style={styles.input}
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Enter current password"
+                  autoComplete="current-password"
+                  required={!!newPassword}
+                />
             </div>
             <div style={styles.field}>
               <label style={styles.label}>New Password</label>
-              <input
-                style={styles.input}
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Min 6 characters"
-              />
+                <input
+                  style={styles.input}
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Min 6 characters"
+                  autoComplete="new-password"
+                />
             </div>
             <button type="submit" className="btn-primary" style={{ ...styles.btn, background: '#F59E0B', color: '#020617' }}>
               {loading ? (
@@ -192,10 +194,10 @@ const styles = {
   heading: {
     fontFamily: 'var(--font-heading)',
     fontSize: '1.5rem',
-    color: 'var(--color-foreground)',
+    color: 'var(--text-primary)',
   },
   sub: {
-    color: '#64748B',
+    color: 'var(--text-tertiary)',
     fontSize: '0.88rem',
     marginTop: '4px',
   },
@@ -211,10 +213,8 @@ const styles = {
     gap: '16px',
   },
   card: {
-    background: 'rgba(26, 30, 47, 0.6)',
-    backdropFilter: 'blur(12px)',
-    WebkitBackdropFilter: 'blur(12px)',
-    border: '1px solid rgba(51, 65, 85, 0.4)',
+    background: 'var(--bg-secondary)',
+    border: '1px solid var(--border)',
     borderRadius: 'var(--radius-md)',
     padding: '24px',
     animation: 'slideUp 0.4s ease both',
@@ -225,12 +225,12 @@ const styles = {
     gap: '10px',
     marginBottom: '20px',
     paddingBottom: '12px',
-    borderBottom: '1px solid rgba(51, 65, 85, 0.3)',
+    borderBottom: '1px solid var(--border)',
   },
   cardTitle: {
     fontSize: '1rem',
     fontWeight: 600,
-    color: 'var(--color-foreground)',
+    color: 'var(--text-primary)',
     fontFamily: 'var(--font-heading)',
   },
   infoRows: {
@@ -242,13 +242,13 @@ const styles = {
     alignItems: 'center',
     gap: '12px',
     padding: '10px 0',
-    borderBottom: '1px solid rgba(51, 65, 85, 0.2)',
+    borderBottom: '1px solid var(--border)',
   },
   infoIcon: {
     width: '32px',
     height: '32px',
     borderRadius: 'var(--radius-sm)',
-    background: 'rgba(100, 116, 139, 0.1)',
+    background: 'var(--bg-tertiary)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -257,14 +257,14 @@ const styles = {
   infoLabel: {
     display: 'block',
     fontSize: '0.72rem',
-    color: '#64748B',
+    color: 'var(--text-tertiary)',
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
   },
   infoValue: {
     display: 'block',
     fontSize: '0.9rem',
-    color: '#CBD5E1',
+    color: 'var(--text-secondary)',
     marginTop: '2px',
   },
   roleBadge: {
@@ -282,7 +282,7 @@ const styles = {
   label: {
     display: 'block',
     fontSize: '0.82rem',
-    color: '#94A3B8',
+    color: 'var(--text-secondary)',
     marginBottom: '6px',
     fontWeight: 500,
   },
@@ -290,9 +290,9 @@ const styles = {
     width: '100%',
     padding: '10px 12px',
     borderRadius: 'var(--radius-sm)',
-    border: '1px solid var(--color-border)',
-    background: 'rgba(2, 6, 23, 0.5)',
-    color: 'var(--color-foreground)',
+    border: '1px solid var(--border)',
+    background: 'var(--bg-primary)',
+    color: 'var(--text-primary)',
     fontSize: '0.88rem',
     outline: 'none',
   },

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Activity, Cpu, HardDrive, MemoryStick, Clock, Loader, Server, Globe, TrendingUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Activity, Cpu, HardDrive, MemoryStick, Clock, Loader, Server, Globe, TrendingUp, ExternalLink } from 'lucide-react';
 
 const WS_BASE = process.env.REACT_APP_WS_URL || `ws://${window.location.hostname}:5000`;
 const MAX_HISTORY = 60;
@@ -119,6 +120,7 @@ const metricStyles = {
 };
 
 export default function Monitoring() {
+  const navigate = useNavigate();
   const [instances, setInstances] = useState([]);
   const [details, setDetails] = useState({});
   const [history, setHistory] = useState({});
@@ -362,6 +364,10 @@ export default function Monitoring() {
                     <div style={styles.uptimeRow}>
                       <TrendingUp size={12} color="#64748B" />
                       <span style={styles.uptimeText}>5 min trend · Uptime: {fmtUptime(d.uptime)}</span>
+                      <button onClick={() => navigate(`/monitor/${inst._id}`)} style={styles.fullViewBtn}>
+                        <ExternalLink size={12} />
+                        Full View
+                      </button>
                     </div>
                   </div>
                 ) : inst.status === 'running' ? (
@@ -394,12 +400,13 @@ const styles = {
     marginBottom: '24px',
   },
   heading: {
-    fontFamily: 'var(--font-heading)',
-    fontSize: '1.5rem',
-    color: 'var(--color-foreground)',
+    fontFamily: 'var(--font)',
+    fontSize: '1.4rem',
+    fontWeight: 600,
+    color: 'var(--text-primary)',
   },
   sub: {
-    color: '#64748B',
+    color: 'var(--text-tertiary)',
     fontSize: '0.88rem',
     marginTop: '4px',
     display: 'flex',
@@ -412,32 +419,33 @@ const styles = {
     gap: '5px',
     padding: '2px 10px',
     borderRadius: '20px',
-    background: 'rgba(34, 197, 94, 0.1)',
-    color: '#22C55E',
+    background: 'var(--accent-soft)',
+    color: 'var(--accent)',
     fontSize: '0.72rem',
     fontWeight: 600,
-    fontFamily: 'var(--font-heading)',
+    fontFamily: 'var(--font)',
     textTransform: 'uppercase',
   },
   liveDot: {
     width: 6,
     height: 6,
     borderRadius: '50%',
-    background: '#22C55E',
+    background: 'var(--accent)',
     animation: 'glowPulse 1.5s ease-in-out infinite',
   },
   statsGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-    gap: '14px',
+    gap: '12px',
     marginBottom: '28px',
   },
   statCard: {
-    background: 'var(--color-muted)',
-    border: '1px solid var(--color-border)',
+    background: 'var(--glass-bg)',
+    backdropFilter: 'blur(24px)',
+    WebkitBackdropFilter: 'blur(24px)',
+    border: '1px solid var(--glass-border)',
     borderRadius: 'var(--radius-md)',
     padding: '18px',
-    transition: 'all var(--transition-normal)',
   },
   statTop: {
     display: 'flex',
@@ -446,36 +454,38 @@ const styles = {
     marginBottom: '8px',
   },
   statVal: {
-    fontFamily: 'var(--font-heading)',
-    fontSize: '1.6rem',
+    fontFamily: 'var(--font)',
+    fontSize: '1.5rem',
     fontWeight: 700,
-    color: 'var(--color-foreground)',
+    color: 'var(--text-primary)',
     lineHeight: 1,
   },
   statLabel: {
-    fontSize: '0.75rem',
-    color: '#64748B',
+    fontSize: '0.72rem',
+    color: 'var(--text-tertiary)',
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
     fontWeight: 500,
   },
   cardSkeleton: {
-    background: 'var(--color-muted)',
+    background: 'var(--glass-bg)',
+    backdropFilter: 'blur(24px)',
     borderRadius: 'var(--radius-md)',
     padding: '20px',
-    border: '1px solid var(--color-border)',
+    border: '1px solid var(--glass-border)',
   },
   grid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))',
-    gap: '16px',
+    gap: '14px',
   },
   card: {
-    background: 'var(--color-muted)',
-    border: '1px solid var(--color-border)',
+    background: 'var(--glass-bg)',
+    backdropFilter: 'blur(24px)',
+    WebkitBackdropFilter: 'blur(24px)',
+    border: '1px solid var(--glass-border)',
     borderRadius: 'var(--radius-md)',
     padding: '20px',
-    transition: 'all var(--transition-normal)',
   },
   cardHeader: {
     display: 'flex',
@@ -489,10 +499,10 @@ const styles = {
     gap: '8px',
   },
   cardName: {
-    fontFamily: 'var(--font-heading)',
+    fontFamily: 'var(--font)',
     fontSize: '1rem',
     fontWeight: 600,
-    color: 'var(--color-foreground)',
+    color: 'var(--text-primary)',
   },
   statusDot: {
     width: '8px',
@@ -509,22 +519,22 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '4px',
-    fontFamily: 'var(--font-heading)',
+    fontFamily: 'var(--font)',
     fontSize: '0.8rem',
-    color: '#64748B',
+    color: 'var(--text-tertiary)',
   },
   specRow: {
     display: 'flex',
     gap: '16px',
     marginBottom: '14px',
     paddingBottom: '12px',
-    borderBottom: '1px solid rgba(51, 65, 85, 0.3)',
+    borderBottom: '1px solid var(--glass-border)',
   },
   spec: {
     display: 'flex',
     alignItems: 'center',
     gap: '4px',
-    color: '#94A3B8',
+    color: 'var(--text-tertiary)',
     fontSize: '0.78rem',
   },
   metricsGrid: {
@@ -539,11 +549,20 @@ const styles = {
     gap: '6px',
     marginTop: '4px',
     paddingTop: '8px',
-    borderTop: '1px solid rgba(51, 65, 85, 0.2)',
+    borderTop: '1px solid var(--glass-border)',
   },
   uptimeText: {
-    color: '#64748B',
+    color: 'var(--text-tertiary)',
     fontSize: '0.72rem',
+  },
+  fullViewBtn: {
+    marginLeft: 'auto',
+    display: 'flex', alignItems: 'center', gap: '4px',
+    padding: '4px 10px', borderRadius: 'var(--radius-sm)',
+    border: '1px solid var(--glass-border)', background: 'var(--glass-bg)',
+    color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: '0.7rem',
+    fontWeight: 500, transition: 'all var(--transition)',
+    backdropFilter: 'blur(24px)',
   },
   loadingMetrics: {
     display: 'flex',
@@ -567,14 +586,16 @@ const styles = {
     width: '72px',
     height: '72px',
     borderRadius: 'var(--radius-xl)',
-    background: 'rgba(51, 65, 85, 0.2)',
+    background: 'var(--glass-bg)',
+    backdropFilter: 'blur(24px)',
+    border: '1px solid var(--glass-border)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
   },
   errorBox: {
-    background: 'rgba(239, 68, 68, 0.1)',
-    border: '1px solid rgba(239, 68, 68, 0.3)',
+    background: 'var(--red-dim)',
+    border: '1px solid rgba(239, 68, 68, 0.2)',
     color: '#FCA5A5',
     padding: '12px 16px',
     borderRadius: 'var(--radius-sm)',

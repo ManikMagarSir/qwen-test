@@ -33,90 +33,52 @@ export default function Login() {
   ];
 
   return (
-    <div style={styles.page}>
-      <div className="mesh-bg" />
-      <div style={styles.particles}>
-        {[...Array(20)].map((_, i) => (
-          <div
-            key={i}
-            style={{
-              ...styles.dot,
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 8}s`,
-              animationDuration: `${4 + Math.random() * 6}s`,
-              width: `${2 + Math.random() * 3}px`,
-              height: `${2 + Math.random() * 3}px`,
-            }}
-          />
-        ))}
-      </div>
+    <div style={s.page}>
+      <div style={s.bgGlow} />
+      <div style={s.bgGrid} />
 
-      <div className="auth-sidebar" style={styles.sidebar}>
-        <div style={styles.sidebarContent}>
-          <div style={styles.logoWrap}>
-            <Cloud size={40} color="#22C55E" />
-          </div>
-          <h1 style={styles.sidebarTitle}>Cloud Manager</h1>
-          <p style={styles.sidebarDesc}>
-            Enterprise-grade infrastructure management. Deploy, monitor, and scale your containers with confidence.
-          </p>
-          <div style={styles.features}>
-            {features.map((f, i) => (
-              <div key={i} style={styles.featureRow}>
-                <div style={styles.featureIcon}>
-                  <f.icon size={14} color="#22C55E" />
+      <div style={s.layout}>
+        <div className="auth-brand-col" style={s.brandCol}>
+          <div style={s.brandCard}>
+            <div style={s.logo}>
+              <Cloud size={32} color="var(--accent)" />
+            </div>
+            <h1 style={s.brandTitle}>Cloud Manager</h1>
+            <p style={s.brandDesc}>
+              Enterprise container infrastructure.<br />
+              Deploy, monitor, and scale.
+            </p>
+            <div style={s.featureList}>
+              {features.map((f, i) => (
+                <div key={i} style={s.featureItem}>
+                  <div style={s.featureIcon}><f.icon size={14} color="var(--accent)" /></div>
+                  <span style={s.featureText}>{f.text}</span>
                 </div>
-                <span style={styles.featureText}>{f.text}</span>
-              </div>
-            ))}
-          </div>
-          <div style={styles.trustRow}>
-            <span style={styles.trustDot} />
-            <span style={styles.trustText}>99.9% Uptime SLA</span>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
-      <div style={styles.formWrap}>
-        <div style={styles.formContainer}>
-          <div style={styles.formCard}>
-            <div style={styles.formHeader}>
-              <h2 style={styles.formTitle}>Welcome back</h2>
-              <p style={styles.formSub}>Sign in to your account to continue</p>
+        <div style={s.formCol}>
+          <div style={s.formCard}>
+            <div style={s.formHeader}>
+              <h2 style={s.formTitle}>Welcome back</h2>
+              <p style={s.formSub}>Sign in to your account</p>
             </div>
-
-            {error && <div style={styles.error}>{error}</div>}
-
+            {error && <div style={s.error}>{error}</div>}
             <form onSubmit={handleSubmit}>
-              <div style={styles.field}>
-                <label htmlFor="email" style={styles.label}>Email</label>
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  placeholder="you@example.com"
-                  style={styles.input}
-                />
+              <div style={s.field}>
+                <label style={s.label}>Email</label>
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="you@example.com" autoComplete="email" style={s.input} />
               </div>
-              <div style={styles.field}>
-                <label htmlFor="password" style={styles.label}>Password</label>
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  placeholder="Enter your password"
-                  style={styles.input}
-                />
+              <div style={s.field}>
+                <label style={s.label}>Password</label>
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="Enter your password" autoComplete="current-password" style={s.input} />
               </div>
-              <button type="submit" disabled={loading} className="btn-primary" style={styles.button}>
+              <button type="submit" disabled={loading} style={s.btn}>
                 {loading ? (
                   <span style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
-                    <span style={spinnerStyle} /> Signing in...
+                    <span style={s.spinner} /> Signing in...
                   </span>
                 ) : (
                   <span style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
@@ -125,10 +87,8 @@ export default function Login() {
                 )}
               </button>
             </form>
-
-            <p style={styles.footer}>
-              Don't have an account?{' '}
-              <Link to="/register" style={styles.link}>Create one</Link>
+            <p style={s.footer}>
+              Don't have an account? <Link to="/register" style={s.link}>Create one</Link>
             </p>
           </div>
         </div>
@@ -137,202 +97,85 @@ export default function Login() {
   );
 }
 
-const spinnerStyle = {
-  width: '16px',
-  height: '16px',
-  border: '2px solid rgba(2, 6, 23, 0.3)',
-  borderTopColor: '#020617',
-  borderRadius: '50%',
-  animation: 'spin 0.6s linear infinite',
-  display: 'inline-block',
-};
-
-const styles = {
+const s = {
   page: {
-    minHeight: '100dvh',
-    display: 'flex',
-    background: 'var(--color-background)',
-    position: 'relative',
-    overflow: 'hidden',
+    minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    background: 'var(--bg-deep)', position: 'relative', overflow: 'hidden', padding: '24px',
   },
-  particles: {
-    position: 'fixed',
-    inset: 0,
-    zIndex: 1,
-    pointerEvents: 'none',
+  bgGlow: {
+    position: 'fixed', inset: 0,
+    background: 'radial-gradient(ellipse 60% 45% at 50% 0%, rgba(16,185,129,0.06) 0%, transparent 60%), radial-gradient(ellipse 40% 35% at 20% 80%, rgba(59,130,246,0.04) 0%, transparent 50%)',
+    zIndex: 0,
   },
-  dot: {
-    position: 'absolute',
-    borderRadius: '50%',
-    background: 'rgba(34, 197, 94, 0.3)',
-    animation: 'float 6s ease-in-out infinite',
+  bgGrid: {
+    position: 'fixed', inset: 0,
+    backgroundImage: 'linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)',
+    backgroundSize: '48px 48px',
+    zIndex: 0,
   },
-  sidebar: {
-    display: 'none',
-    width: '440px',
-    background: 'rgba(15, 23, 42, 0.6)',
-    backdropFilter: 'blur(20px)',
-    WebkitBackdropFilter: 'blur(20px)',
-    padding: '56px 48px',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    borderRight: '1px solid rgba(51, 65, 85, 0.4)',
-    position: 'relative',
-    zIndex: 2,
+  layout: {
+    display: 'flex', gap: '48px', alignItems: 'center',
+    maxWidth: '920px', width: '100%', position: 'relative', zIndex: 1,
+    flexWrap: 'wrap', justifyContent: 'center',
   },
-  sidebarContent: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '24px',
+  brandCol: { display: 'none', flex: 1, minWidth: '300px', maxWidth: '380px' },
+  brandCard: {
+    background: 'var(--glass-bg)', backdropFilter: 'blur(24px)',
+    WebkitBackdropFilter: 'blur(24px)',
+    border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-xl)',
+    padding: '40px',
   },
-  logoWrap: {
-    width: '64px',
-    height: '64px',
-    borderRadius: 'var(--radius-lg)',
-    background: 'rgba(34, 197, 94, 0.1)',
-    border: '1px solid rgba(34, 197, 94, 0.2)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    animation: 'breathe 3s ease-in-out infinite',
+  logo: {
+    width: '56px', height: '56px', borderRadius: 'var(--radius-lg)',
+    background: 'var(--accent-dim)', border: '1px solid var(--glass-border)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    marginBottom: '24px', animation: 'breathe 3s ease-in-out infinite',
   },
-  sidebarTitle: {
-    fontFamily: 'var(--font-heading)',
-    fontSize: '1.8rem',
-    color: 'var(--color-foreground)',
-    lineHeight: 1.2,
+  brandTitle: {
+    fontFamily: 'var(--font)', fontSize: '1.8rem', fontWeight: 700,
+    color: 'var(--text-primary)', marginBottom: '10px',
   },
-  sidebarDesc: {
-    color: '#94A3B8',
-    fontSize: '0.95rem',
-    lineHeight: 1.7,
-  },
-  features: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '14px',
-  },
-  featureRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-  },
+  brandDesc: { color: 'var(--text-tertiary)', fontSize: '0.9rem', lineHeight: 1.7, marginBottom: '28px' },
+  featureList: { display: 'flex', flexDirection: 'column', gap: '12px' },
+  featureItem: { display: 'flex', alignItems: 'center', gap: '10px' },
   featureIcon: {
-    width: '32px',
-    height: '32px',
-    borderRadius: 'var(--radius-sm)',
-    background: 'rgba(34, 197, 94, 0.08)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
+    width: '30px', height: '30px', borderRadius: 'var(--radius-sm)',
+    background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
-  featureText: {
-    color: '#CBD5E1',
-    fontSize: '0.9rem',
-  },
-  trustRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    marginTop: '8px',
-    padding: '12px 16px',
-    borderRadius: 'var(--radius-sm)',
-    background: 'rgba(34, 197, 94, 0.04)',
-    border: '1px solid rgba(34, 197, 94, 0.1)',
-  },
-  trustDot: {
-    width: 8,
-    height: 8,
-    borderRadius: '50%',
-    background: '#22C55E',
-    flexShrink: 0,
-    animation: 'glowPulse 2s ease-in-out infinite',
-  },
-  trustText: {
-    color: '#22C55E',
-    fontSize: '0.82rem',
-    fontWeight: 500,
-  },
-  formWrap: {
-    flex: 1,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '24px',
-    position: 'relative',
-    zIndex: 2,
-  },
-  formContainer: {
-    width: '100%',
-    maxWidth: '420px',
-  },
+  featureText: { color: 'var(--text-secondary)', fontSize: '0.88rem' },
+  formCol: { flex: 1, minWidth: '340px', maxWidth: '420px' },
   formCard: {
-    background: 'rgba(15, 23, 42, 0.6)',
-    backdropFilter: 'blur(20px)',
-    WebkitBackdropFilter: 'blur(20px)',
-    border: '1px solid rgba(51, 65, 85, 0.5)',
-    borderRadius: 'var(--radius-xl)',
-    padding: '36px',
-    animation: 'fadeIn 0.5s ease',
+    background: 'var(--glass-bg)', backdropFilter: 'blur(24px)',
+    WebkitBackdropFilter: 'blur(24px)',
+    border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-xl)',
+    padding: '36px', animation: 'slideUp 0.4s ease',
   },
-  formHeader: {
-    marginBottom: '28px',
-  },
-  formTitle: {
-    fontFamily: 'var(--font-heading)',
-    fontSize: '1.5rem',
-    color: 'var(--color-foreground)',
-    marginBottom: '6px',
-  },
-  formSub: {
-    color: '#64748B',
-    fontSize: '0.9rem',
-  },
+  formHeader: { marginBottom: '24px' },
+  formTitle: { fontFamily: 'var(--font)', fontSize: '1.3rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' },
+  formSub: { color: 'var(--text-tertiary)', fontSize: '0.9rem' },
   error: {
-    background: 'rgba(239, 68, 68, 0.1)',
-    border: '1px solid rgba(239, 68, 68, 0.3)',
-    color: '#FCA5A5',
-    padding: '12px 16px',
-    borderRadius: 'var(--radius-sm)',
-    fontSize: '0.88rem',
-    marginBottom: '20px',
-    animation: 'slideDown 0.2s ease',
+    background: 'var(--red-dim)', border: '1px solid rgba(239,68,68,0.2)',
+    color: '#FCA5A5', padding: '10px 14px', borderRadius: 'var(--radius-sm)',
+    fontSize: '0.85rem', marginBottom: '20px', animation: 'slideDown 0.2s ease',
   },
-  field: {
-    marginBottom: '18px',
-  },
-  label: {
-    display: 'block',
-    color: '#94A3B8',
-    fontSize: '0.85rem',
-    fontWeight: 500,
-    marginBottom: '6px',
-  },
+  field: { marginBottom: '16px' },
+  label: { display: 'block', color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 500, marginBottom: '6px' },
   input: {
-    width: '100%',
-    padding: '12px 14px',
-    borderRadius: 'var(--radius-sm)',
-    border: '1px solid var(--color-border)',
-    background: 'rgba(2, 6, 23, 0.5)',
-    color: 'var(--color-foreground)',
-    fontSize: '0.95rem',
-    outline: 'none',
+    width: '100%', padding: '11px 14px', borderRadius: 'var(--radius-sm)',
+    border: '1px solid var(--glass-border)', background: 'rgba(0,0,0,0.2)',
+    color: 'var(--text-primary)', fontSize: '0.9rem', outline: 'none',
+    transition: 'all var(--transition)',
   },
-  button: {
-    width: '100%',
-    marginTop: '8px',
-    padding: '12px',
-    fontSize: '0.95rem',
+  btn: {
+    width: '100%', marginTop: '4px', padding: '11px', borderRadius: 'var(--radius-sm)',
+    border: 'none', background: 'var(--accent)', color: '#020617',
+    fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', transition: 'all var(--transition)',
   },
-  footer: {
-    textAlign: 'center',
-    color: '#64748B',
-    fontSize: '0.88rem',
-    marginTop: '24px',
+  spinner: {
+    width: '16px', height: '16px', border: '2px solid rgba(2,6,23,0.3)',
+    borderTopColor: '#020617', borderRadius: '50%',
+    animation: 'spin 0.6s linear infinite', display: 'inline-block',
   },
-  link: {
-    color: 'var(--color-accent)',
-    fontWeight: 500,
-  },
+  footer: { textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.88rem', marginTop: '24px' },
+  link: { color: 'var(--accent)', fontWeight: 500 },
 };

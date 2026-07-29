@@ -4,6 +4,18 @@ const Instance = require('./models/Instance');
 const User = require('./models/User');
 const proxmox = require('./services/proxmox');
 const WsRateLimiter = require('./utils/wsRateLimiter');
+const { saveMetrics } = require('./models/Metric');
+
+function normalizeProxmoxData(raw) {
+  if (!raw) return null;
+  return {
+    cpu: raw.cpu || 0,
+    memory: { used: raw.mem || 0, total: raw.maxmem || 1 },
+    swap: { used: raw.swap || 0, total: raw.maxswap || 1 },
+    disk: { used: raw.disk || 0, total: raw.maxdisk || 1 },
+    uptime: raw.uptime || 0,
+  };
+}
 
 function setupMonitor(server) {
   const wss = new WebSocketServer({ noServer: true, maxPayload: 1024 * 256 });
@@ -34,7 +46,11 @@ function setupMonitor(server) {
           );
           running.forEach((i, idx) => {
             if (results[idx].status === 'fulfilled' && results[idx].value) {
-              detailMap[i._id] = results[idx].value;
+              const norm = normalizeProxmoxData(results[idx].value);
+              if (norm) {
+                detailMap[i._id] = norm;
+                saveMetrics(i._id, norm);
+              }
             }
           });
         }

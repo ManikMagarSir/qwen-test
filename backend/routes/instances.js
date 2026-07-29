@@ -7,6 +7,7 @@ const proxmox = require('../services/proxmox');
 const { allocateIP, releaseIP, getIPByInstance } = require('../services/ipam');
 const { validate } = require('../utils/validate');
 const logger = require('../utils/logger');
+const { getMetrics } = require('../models/Metric');
 
 const router = express.Router();
 
@@ -352,6 +353,18 @@ router.get('/:id/interfaces', auth, async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+const METRIC_RANGES = { '5m': 300000, '30m': 1800000, '1h': 3600000, '3h': 10800000, '24h': 86400000, '7d': 604800000 };
+
+router.get('/:id/metrics', auth, async (req, res, next) => {
+  try {
+    const instance = await Instance.findOne({ _id: req.params.id, owner: req.user._id });
+    if (!instance) return res.status(404).json({ error: 'Instance not found' });
+    const range = req.query.range || '1h';
+    const metrics = await getMetrics(req.params.id, METRIC_RANGES[range] || METRIC_RANGES['1h']);
+    res.json({ metrics, range });
+  } catch (err) { next(err); }
 });
 
 module.exports = router;

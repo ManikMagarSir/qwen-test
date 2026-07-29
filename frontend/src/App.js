@@ -6,6 +6,7 @@ import Register from './components/Register';
 import Dashboard from './components/Dashboard';
 import CreateInstance from './components/CreateInstance';
 import Monitoring from './components/Monitoring';
+import InstanceDetail from './components/InstanceDetail';
 import Profile from './components/Profile';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
@@ -18,21 +19,16 @@ function ProtectedRoute({ children }) {
   if (loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
   return (
-    <div style={{ display: 'flex', minHeight: '100dvh' }}>
+    <div style={{ display: 'flex', minHeight: '100dvh', background: 'var(--bg-deep)' }}>
       <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
       <div style={{
         flex: 1,
         marginLeft: collapsed ? '64px' : '240px',
-        transition: 'margin-left var(--transition-normal)',
-        display: 'flex',
-        flexDirection: 'column',
+        transition: 'margin-left var(--transition-slow)',
+        display: 'flex', flexDirection: 'column',
       }}>
-        <Navbar />
-        <main style={{
-          paddingTop: '64px',
-          minHeight: '100dvh',
-          background: 'var(--color-background)',
-        }}>
+        <Navbar collapsed={collapsed} />
+        <main style={{ paddingTop: '64px', minHeight: '100dvh' }}>
           {children}
         </main>
       </div>
@@ -49,54 +45,34 @@ function PublicRoute({ children }) {
 
 function LoadingScreen() {
   return (
-    <div style={loadingStyles.container}>
-      <div style={loadingStyles.logoWrap}>
-        <Cloud size={32} color="#22C55E" />
+    <div style={{
+      minHeight: '100dvh', display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      background: 'var(--bg-deep)', gap: '24px',
+    }}>
+      <div style={{
+        width: '52px', height: '52px', borderRadius: 'var(--radius-lg)',
+        background: 'var(--glass-bg)',
+        backdropFilter: 'blur(24px)',
+        border: '1px solid var(--glass-border)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        animation: 'breathe 2s ease-in-out infinite',
+      }}>
+        <Cloud size={24} color="var(--accent)" />
       </div>
-      <div style={loadingStyles.spinner} />
-      <p style={loadingStyles.text}>Loading Cloud Manager...</p>
+      <div style={{
+        width: '20px', height: '20px',
+        border: '2px solid var(--glass-border)',
+        borderTopColor: 'var(--accent)', borderRadius: '50%',
+        animation: 'spin 0.8s linear infinite',
+      }} />
     </div>
   );
 }
 
-const loadingStyles = {
-  container: {
-    minHeight: '100dvh',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: 'var(--color-background)',
-    gap: '20px',
-  },
-  logoWrap: {
-    width: '56px',
-    height: '56px',
-    borderRadius: 'var(--radius-lg)',
-    background: 'rgba(34, 197, 94, 0.1)',
-    border: '1px solid rgba(34, 197, 94, 0.2)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    animation: 'breathe 2s ease-in-out infinite',
-  },
-  spinner: {
-    width: '24px',
-    height: '24px',
-    border: '2px solid var(--color-border)',
-    borderTopColor: 'var(--color-accent)',
-    borderRadius: '50%',
-    animation: 'spin 0.8s linear infinite',
-  },
-  text: {
-    color: '#64748B',
-    fontSize: '0.88rem',
-  },
-};
-
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
@@ -104,6 +80,7 @@ export default function App() {
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/create" element={<ProtectedRoute><CreateInstance /></ProtectedRoute>} />
           <Route path="/monitoring" element={<ProtectedRoute><Monitoring /></ProtectedRoute>} />
+          <Route path="/monitor/:id" element={<ProtectedRoute><InstanceDetail /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
