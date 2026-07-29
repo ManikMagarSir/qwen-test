@@ -77,8 +77,13 @@ function TerminalContent({ instance, onClose }) {
 
       ws.onclose = (e) => {
         setConnected(false);
-        const reasons = { 4004: 'Instance not ready', 4005: 'Session failed' };
-        const msg = reasons[e.code] || e.reason || `Connection closed (code ${e.code})`;
+
+        if (e.code === 1000) {
+          term.writeln('\r\n\x1b[33mSession ended\x1b[0m');
+          return;
+        }
+
+        const msg = e.reason || `Connection closed (code ${e.code})`;
         term.writeln(`\r\n\x1b[33m${msg}\x1b[0m`);
 
         if (!destroyed && reconnectCount < MAX_RECONNECTS) {

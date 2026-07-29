@@ -75,7 +75,6 @@ router.get('/node', auth, adminOnly, async (req, res, next) => {
 });
 
 router.post('/create', auth, validate('createInstance'), async (req, res, next) => {
-  const mongoose = require('mongoose');
   const { type, name, cpus, memory, disk, storage, ostemplate, password, net, bridge } = req.body;
 
   const node = process.env.PROXMOX_NODE;
@@ -84,29 +83,17 @@ router.post('/create', auth, validate('createInstance'), async (req, res, next) 
   let ipInfo = null;
   let instanceId = null;
 
-  const session = await mongoose.startSession();
-  try {
-    session.startTransaction();
+  if (type === 'lxc') {
+    const tempInstance = await Instance.create({
+      owner: req.user._id, type, vmid: Number(vmid), node, name,
+      cpus, memory, disk, status: 'creating',
+    });
+    instanceId = tempInstance._id;
 
-    if (type === 'lxc') {
-      const [tempInstance] = await Instance.create([{
-        owner: req.user._id, type, vmid: Number(vmid), node, name,
-        cpus, memory, disk, status: 'creating',
-      }], { session });
-      instanceId = tempInstance._id;
-
-      ipInfo = await allocateIP(tempInstance._id, req.user._id);
-      tempInstance.ip = ipInfo.ip;
-      await tempInstance.save({ session });
-    }
-
-    await session.commitTransaction();
-  } catch (ipErr) {
-    await session.abortTransaction();
-    session.endSession();
-    return res.status(507).json({ error: 'IP allocation failed' });
+    ipInfo = await allocateIP(tempInstance._id, req.user._id);
+    tempInstance.ip = ipInfo.ip;
+    await tempInstance.save();
   }
-  session.endSession();
 
   const params = { vmid, name, cores: cpus, memory };
 

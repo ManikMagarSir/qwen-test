@@ -57,7 +57,7 @@ function setupConsole(server) {
           if (ws.readyState === ws.OPEN) ws.send(data.toString('base64'));
         });
 
-        stream.on('close', () => ws.close());
+        stream.on('close', () => ws.close(1000, 'Session ended'));
         ws.on('close', () => { stream.close(); ssh.end(); });
       });
     });
