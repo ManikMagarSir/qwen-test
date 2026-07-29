@@ -244,9 +244,10 @@ The ticket is cached. `ensureAuth()` re-authenticates on 401 responses.
 
 1. Frontend sends `PUT /api/instances/:id/resize` with `{ cpus, memory, disk }`
 2. Joi validation checks ranges (`cpus: 1–32`, `memory: 128–131072`, `disk: ≥ current`)
-3. `proxmox.updateLxc()` calls `PUT /nodes/{node}/lxc/{vmid}/config` for CPU/memory
-4. `proxmox.resizeLxcDisk()` calls `PUT /nodes/{node}/lxc/{vmid}/resize` for disk
-5. MongoDB record updated after successful API calls
+3. Running instance check — if the container is running, disk resize is rejected with `409 DISK_RESIZE_RUNNING` (stop the container first, or use `force: true` for live resize at your own risk)
+4. `proxmox.updateLxc()` calls `PUT /nodes/{node}/lxc/{vmid}/config` for CPU/memory
+5. `proxmox.resizeLxcDisk()` calls `PUT /nodes/{node}/lxc/{vmid}/resize` for disk
+6. MongoDB record updated after successful API calls
 
 ---
 
@@ -288,6 +289,7 @@ The `findOneAndUpdate` with the filter `{ ip, instance: null }` ensures atomic c
 3. SSH connection to Proxmox host
 4. `lxc-attach -n {vmid}` enters the container
 5. Bidirectional base64 streaming
+6. Frontend auto-reconnects on drop (up to 5 attempts, 3s interval)
 
 ### Monitor WebSocket (`/api/monitor/ws`)
 

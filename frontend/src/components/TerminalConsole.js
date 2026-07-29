@@ -7,7 +7,12 @@ import { Monitor, X, Maximize2, Minimize2 } from 'lucide-react';
 
 function TerminalContent({ instance, onClose }) {
   const termRef = useRef(null);
+  const wsRef = useRef(null);
+  const reconnectRef = useRef(null);
   const [fullscreen, setFullscreen] = React.useState(false);
+  const [connected, setConnected] = React.useState(false);
+  const MAX_RECONNECTS = 5;
+  const RECONNECT_INTERVAL = 3000;
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -39,47 +44,77 @@ function TerminalContent({ instance, onClose }) {
 
     term.write('Connecting to container...\r\n');
 
-    const ws = new WebSocket(wsUrl);
+    let reconnectCount = 0;
+    let destroyed = false;
 
-    ws.onopen = () => {
-      term.clear();
-      term.focus();
-    };
+    function connect() {
+      if (destroyed) return;
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
 
-    ws.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data);
-        if (msg.type === 'error') {
-          term.writeln(`\r\n\x1b[31m${msg.message}\x1b[0m`);
+      ws.onopen = () => {
+        reconnectCount = 0;
+        setConnected(true);
+        term.clear();
+        term.focus();
+        if (reconnectRef.current) {
+          clearTimeout(reconnectRef.current);
+          reconnectRef.current = null;
         }
-        return;
-      } catch (_) {
-        term.write(atob(event.data));
-      }
-    };
+      };
 
-    ws.onclose = (e) => {
-      const reasons = { 4004: 'Instance not ready', 4005: 'Session failed' };
-      const msg = reasons[e.code] || e.reason || `Connection closed (code ${e.code})`;
-      term.writeln(`\r\n\x1b[33m${msg}\x1b[0m`);
-    };
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'error') {
+            term.writeln(`\r\n\x1b[31m${msg.message}\x1b[0m`);
+          }
+          return;
+        } catch (_) {
+          term.write(atob(event.data));
+        }
+      };
 
-    term.onData((data) => {
-      if (ws.readyState === WebSocket.OPEN) ws.send(data);
-    });
+      ws.onclose = (e) => {
+        setConnected(false);
+        const reasons = { 4004: 'Instance not ready', 4005: 'Session failed' };
+        const msg = reasons[e.code] || e.reason || `Connection closed (code ${e.code})`;
+        term.writeln(`\r\n\x1b[33m${msg}\x1b[0m`);
 
-    term.onResize(({ cols, rows }) => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'resize', cols, rows }));
-      }
-    });
+        if (!destroyed && reconnectCount < MAX_RECONNECTS) {
+          reconnectCount++;
+          term.writeln(`\r\n\x1b[33mReconnecting in ${RECONNECT_INTERVAL / 1000}s (attempt ${reconnectCount}/${MAX_RECONNECTS})...\x1b[0m`);
+          reconnectRef.current = setTimeout(connect, RECONNECT_INTERVAL);
+        } else if (!destroyed) {
+          term.writeln('\r\n\x1b[31mReconnection failed. Please refresh the page.\x1b[0m');
+        }
+      };
+
+      ws.onerror = () => {
+        ws.close();
+      };
+
+      term.onData((data) => {
+        if (ws.readyState === WebSocket.OPEN) ws.send(data);
+      });
+
+      term.onResize(({ cols, rows }) => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'resize', cols, rows }));
+        }
+      });
+    }
+
+    connect();
 
     const ro = new ResizeObserver(() => { try { fit.fit(); } catch (_) {} });
     ro.observe(termRef.current);
 
     return () => {
+      destroyed = true;
       ro.disconnect();
-      ws.close();
+      if (reconnectRef.current) clearTimeout(reconnectRef.current);
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) wsRef.current.close();
       term.dispose();
     };
   }, [instance._id]);
@@ -109,9 +144,9 @@ function TerminalContent({ instance, onClose }) {
             )}
           </div>
           <div style={styles.headerRight}>
-            <span style={styles.connStatus}>
-              <span style={styles.connDot} />
-              connected
+            <span style={{ ...styles.connStatus, background: connected ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', color: connected ? '#4ADE80' : '#F87171' }}>
+              <span style={{ ...styles.connDot, background: connected ? '#22C55E' : '#EF4444' }} />
+              {connected ? 'connected' : 'reconnecting'}
             </span>
             <button onClick={() => setFullscreen(!fullscreen)} style={styles.headerBtn} title={fullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
               {fullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}

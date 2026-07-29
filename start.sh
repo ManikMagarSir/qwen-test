@@ -27,9 +27,9 @@ if command -v mongosh &>/dev/null || command -v mongo &>/dev/null; then
     echo -e "  ${GREEN}MongoDB already running${NC}"
   } || {
     if command -v mongod &>/dev/null; then
-      mkdir -p /tmp/cloud-mongodb
-      mongod --dbpath /tmp/cloud-mongodb --logpath /tmp/cloud-mongodb/mongo.log --fork 2>&1
-      echo -e "  ${GREEN}MongoDB started${NC}"
+      mkdir -p "$ROOT_DIR/data/mongodb"
+      mongod --dbpath "$ROOT_DIR/data/mongodb" --logpath "$ROOT_DIR/data/mongodb/mongo.log" --fork 2>&1
+      echo -e "  ${GREEN}MongoDB started (data: $ROOT_DIR/data/mongodb)${NC}"
     else
       echo -e "  ${YELLOW}mongod not found — trying systemctl...${NC}"
       sudo systemctl start mongod 2>/dev/null || sudo service mongod start 2>/dev/null || {
@@ -44,8 +44,8 @@ else
   else
     sudo systemctl start mongod 2>/dev/null || {
       echo -e "  ${YELLOW}Trying mongod directly...${NC}"
-      mkdir -p /tmp/cloud-mongodb
-      mongod --dbpath /tmp/cloud-mongodb --logpath /tmp/cloud-mongodb/mongo.log --fork 2>&1 || {
+      mkdir -p "$ROOT_DIR/data/mongodb"
+      mongod --dbpath "$ROOT_DIR/data/mongodb" --logpath "$ROOT_DIR/data/mongodb/mongo.log" --fork 2>&1 || {
         echo -e "  ${RED}Failed to start MongoDB. Start it manually.${NC}"
       }
     }

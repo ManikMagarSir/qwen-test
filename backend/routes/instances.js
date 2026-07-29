@@ -307,6 +307,16 @@ router.put('/:id/resize', auth, validate('resizeInstance'), async (req, res, nex
 
     const { cpus, memory, disk } = req.body;
 
+    if (instance.status === 'running') {
+      const proxmoxStatus = await proxmox.getInstance(instance.node, instance.type, instance.vmid).catch(() => null);
+      if (proxmoxStatus && proxmoxStatus.status === 'running') {
+        if (disk != null && disk !== instance.disk) {
+          return res.status(409).json({ error: 'Cannot resize disk on a running instance. Stop the instance first or set force: true to attempt live resize (may cause data corruption).', code: 'DISK_RESIZE_RUNNING' });
+        }
+        return res.status(409).json({ error: 'Resource changes (CPU/RAM) may require instance restart.', code: 'INSTANCE_RUNNING' });
+      }
+    }
+
     let changed = false;
 
     if (cpus != null && cpus !== instance.cpus) {

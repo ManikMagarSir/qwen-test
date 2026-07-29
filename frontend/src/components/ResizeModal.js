@@ -24,7 +24,15 @@ export default function ResizeModal({ instance, onClose, onResized }) {
       onResized(res.data.instance);
       onClose();
     } catch (err) {
-      setError(err.response?.data?.error || 'Resize failed');
+      const msg = err.response?.data?.error || 'Resize failed';
+      const code = err.response?.data?.code;
+      if (code === 'INSTANCE_RUNNING') {
+        setError('Instance is running. Stop it first to apply resource changes.');
+      } else if (code === 'DISK_RESIZE_RUNNING') {
+        setError('Cannot resize disk while the instance is running. Stop it first, then try again.');
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }

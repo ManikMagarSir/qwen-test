@@ -33,9 +33,11 @@ sudo systemctl enable --now mongod
 ### Option B: Start temporary instance for development
 
 ```bash
-mkdir -p /tmp/cloud-mongodb
-mongod --dbpath /tmp/cloud-mongodb --logpath /tmp/cloud-mongodb/mongo.log --fork
+mkdir -p data/mongodb
+mongod --dbpath data/mongodb --logpath data/mongodb/mongo.log --fork
 ```
+
+> ⚠️ **Data persistence**: The ``./start.sh`` script stores data at ``./data/mongodb/`` (project-relative), so it survives reboots. The ``data/`` directory is gitignored. If you start MongoDB manually with a different ``--dbpath``, data will not persist across restarts.
 
 ### Verify
 
@@ -211,7 +213,8 @@ This starts MongoDB, backend, and frontend in a single terminal with Ctrl+C clea
 **Terminal 1 — MongoDB:**
 
 ```bash
-mongod --dbpath /tmp/cloud-mongodb --logpath /tmp/cloud-mongodb/mongo.log --fork
+mkdir -p data/mongodb
+mongod --dbpath data/mongodb --logpath data/mongodb/mongo.log --fork
 ```
 
 **Terminal 2 — Backend:**
@@ -258,13 +261,13 @@ This starts MongoDB, the backend, and an Nginx-served frontend.
 
 ```bash
 # Check logs
-cat /tmp/cloud-mongodb/mongo.log
+cat data/mongodb/mongo.log
 
 # Kill existing process
 kill $(pgrep -f mongod)
 
 # Restart
-mongod --dbpath /tmp/cloud-mongodb --logpath /tmp/cloud-mongodb/mongo.log --fork
+mongod --dbpath data/mongodb --logpath data/mongodb/mongo.log --fork
 ```
 
 ### Proxmox API connection fails

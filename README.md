@@ -88,8 +88,9 @@ Edit `backend/.env`:
 Or start individually:
 
 ```bash
-# Terminal 1 — MongoDB
-mongod --dbpath /tmp/cloud-mongodb --logpath /tmp/cloud-mongodb/mongo.log --fork
+# Terminal 1 — MongoDB (data is persisted at ./data/mongodb)
+mkdir -p data/mongodb
+mongod --dbpath data/mongodb --logpath data/mongodb/mongo.log --fork
 
 # Terminal 2 — Backend
 cd backend && node server.js
