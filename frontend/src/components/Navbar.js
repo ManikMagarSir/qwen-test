@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { Menu } from 'lucide-react';
 
 const pageTitles = {
   '/dashboard': 'Dashboard',
@@ -9,7 +10,7 @@ const pageTitles = {
   '/profile': 'Profile',
 };
 
-export default function Navbar({ collapsed }) {
+export default function Navbar({ collapsed, isMobile, onMenuClick }) {
   const { user } = useAuth();
   const location = useLocation();
   const title = pageTitles[location.pathname] || 'Cloud Manager';
@@ -17,10 +18,17 @@ export default function Navbar({ collapsed }) {
   return (
     <nav style={{
       ...s.nav,
-      left: collapsed ? '64px' : '240px',
+      left: isMobile ? '0' : (collapsed ? '64px' : '240px'),
     }}>
       <div style={s.inner}>
-        <h2 style={s.title}>{title}</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {isMobile && (
+            <button onClick={onMenuClick} style={s.menuBtn}>
+              <Menu size={20} />
+            </button>
+          )}
+          <h2 style={s.title}>{title}</h2>
+        </div>
         <div style={s.right}>
           <div style={s.userBadge}>
             <div style={s.avatar}>
@@ -38,7 +46,7 @@ const s = {
   nav: {
     position: 'fixed', top: 0, right: 0, zIndex: 80,
     transition: 'left var(--transition-slow)',
-    background: 'rgba(5, 7, 10, 0.8)',
+    background: 'rgba(5,7,10,0.8)',
     backdropFilter: 'blur(24px)',
     WebkitBackdropFilter: 'blur(24px)',
     borderBottom: '1px solid var(--glass-border)',
@@ -46,7 +54,15 @@ const s = {
   inner: {
     height: '64px',
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '0 32px',
+    padding: '0 16px',
+  },
+  menuBtn: {
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    width: '36px', height: '36px',
+    borderRadius: 'var(--radius-sm)',
+    border: '1px solid var(--glass-border)',
+    background: 'var(--glass-bg)', color: 'var(--text-secondary)',
+    cursor: 'pointer', flexShrink: 0,
   },
   title: {
     fontFamily: 'var(--font)', fontSize: '1.05rem', fontWeight: 600,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './components/Login';
@@ -10,28 +10,55 @@ import InstanceDetail from './components/InstanceDetail';
 import Profile from './components/Profile';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
+import BottomNav from './components/BottomNav';
 import { Cloud } from 'lucide-react';
 import './styles.css';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileMenu, setMobileMenu] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   if (loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
+
+  const sidebarWidth = isMobile ? 0 : (collapsed ? '64px' : '240px');
+
   return (
     <div style={{ display: 'flex', minHeight: '100dvh', background: 'var(--bg-deep)' }}>
-      <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
+      {mobileMenu && isMobile && (
+        <div onClick={() => setMobileMenu(false)} style={{
+          position: 'fixed', inset: 0, zIndex: 95,
+          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+          WebkitBackdropFilter: 'blur(4px)',
+        }} />
+      )}
+      <Sidebar
+        collapsed={collapsed}
+        onToggle={() => setCollapsed(!collapsed)}
+        mobileOpen={mobileMenu}
+        onMobileClose={() => setMobileMenu(false)}
+        isMobile={isMobile}
+      />
       <div style={{
         flex: 1,
-        marginLeft: collapsed ? '64px' : '240px',
+        marginLeft: isMobile ? '0' : sidebarWidth,
         transition: 'margin-left var(--transition-slow)',
         display: 'flex', flexDirection: 'column',
       }}>
-        <Navbar collapsed={collapsed} />
-        <main style={{ paddingTop: '64px', minHeight: '100dvh' }}>
+        <Navbar collapsed={collapsed} isMobile={isMobile} onMenuClick={() => setMobileMenu(!mobileMenu)} />
+        <main style={{ paddingTop: '64px', paddingBottom: isMobile ? '64px' : '0', minHeight: '100dvh' }}>
           {children}
         </main>
       </div>
+      {isMobile && <BottomNav />}
     </div>
   );
 }

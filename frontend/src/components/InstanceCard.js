@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import api from '../api/axios';
 import TerminalConsole from './TerminalConsole';
 import ResizeModal from './ResizeModal';
+import ConfirmModal from './ConfirmModal';
 import {
   Play, Square, RefreshCw, Pause, Trash2,
   Cpu, HardDrive, Database, Globe, Camera, ChevronDown, ChevronRight, RotateCcw, X, Terminal, Sliders,
@@ -9,12 +10,14 @@ import {
 
 export default function InstanceCard({ instance, onDelete, onStatusChange }) {
   const [actionLoading, setActionLoading] = useState('');
+  const [snapLoading, setSnapLoading] = useState('');
   const [snapshots, setSnapshots] = useState(null);
   const [snapName, setSnapName] = useState('');
   const [showSnapshots, setShowSnapshots] = useState(false);
   const [showConnect, setShowConnect] = useState(false);
   const [showResize, setShowResize] = useState(false);
   const [error, setError] = useState('');
+  const [confirm, setConfirm] = useState({ open: false, title: '', message: '', onConfirm: null, variant: 'danger' });
 
   const doAction = async (action, label) => {
     setError('');
@@ -28,10 +31,18 @@ export default function InstanceCard({ instance, onDelete, onStatusChange }) {
   };
 
   const handleDelete = async () => {
-    if (!window.confirm(`Delete ${instance.name}? This cannot be undone.`)) return;
-    setError(''); setActionLoading('delete');
-    try { await api.delete(`/instances/${instance._id}`); onDelete(instance._id); }
-    catch (err) { setError(err.response?.data?.error || 'Delete failed'); setActionLoading(''); }
+    setConfirm({
+      open: true, variant: 'danger',
+      title: 'Delete instance?',
+      message: `Delete "${instance.name}"? This action cannot be undone. All data will be permanently removed.`,
+      confirmLabel: 'Delete',
+      onConfirm: async () => {
+        setConfirm({ open: false });
+        setError(''); setActionLoading('delete');
+        try { await api.delete(`/instances/${instance._id}`); onDelete(instance._id); }
+        catch (err) { setError(err.response?.data?.error || 'Delete failed'); setActionLoading(''); }
+      },
+    });
   };
 
   const toggleSnapshots = async () => {
@@ -44,23 +55,40 @@ export default function InstanceCard({ instance, onDelete, onStatusChange }) {
   const createSnapshot = async (e) => {
     e.preventDefault();
     if (!snapName.trim()) return;
-    setError('');
+    setError(''); setSnapLoading('create');
     try { await api.post(`/instances/${instance._id}/snapshots`, { snapname: snapName }); setSnapName(''); const res = await api.get(`/instances/${instance._id}/snapshots`); setSnapshots(res.data.snapshots); }
     catch (err) { setError(err.response?.data?.error || 'Snapshot failed'); }
+    finally { setSnapLoading(''); }
   };
 
-  const deleteSnapshot = async (name) => {
-    if (!window.confirm(`Delete snapshot "${name}"?`)) return;
-    setError('');
-    try { await api.delete(`/instances/${instance._id}/snapshots/${name}`); const res = await api.get(`/instances/${instance._id}/snapshots`); setSnapshots(res.data.snapshots); }
-    catch (err) { setError(err.response?.data?.error || 'Delete snapshot failed'); }
+  const deleteSnapshot = (name) => {
+    setConfirm({
+      open: true, variant: 'danger',
+      title: 'Delete snapshot?',
+      message: `Delete snapshot "${name}"? This cannot be undone.`,
+      confirmLabel: 'Delete',
+      onConfirm: async () => {
+        setConfirm({ open: false }); setError(''); setSnapLoading('delete');
+        try { await api.delete(`/instances/${instance._id}/snapshots/${name}`); const res = await api.get(`/instances/${instance._id}/snapshots`); setSnapshots(res.data.snapshots); }
+        catch (err) { setError(err.response?.data?.error || 'Delete snapshot failed'); }
+        finally { setSnapLoading(''); }
+      },
+    });
   };
 
-  const rollbackSnapshot = async (name) => {
-    if (!window.confirm(`Roll back to snapshot "${name}"?`)) return;
-    setError('');
-    try { await api.post(`/instances/${instance._id}/snapshots/${name}/rollback`); const res = await api.get(`/instances/${instance._id}/snapshots`); setSnapshots(res.data.snapshots); }
-    catch (err) { setError(err.response?.data?.error || 'Rollback failed'); }
+  const rollbackSnapshot = (name) => {
+    setConfirm({
+      open: true, variant: 'danger',
+      title: 'Roll back snapshot?',
+      message: `Roll back to snapshot "${name}"? This will revert the container to this snapshot's state.`,
+      confirmLabel: 'Rollback',
+      onConfirm: async () => {
+        setConfirm({ open: false }); setError(''); setSnapLoading('rollback');
+        try { await api.post(`/instances/${instance._id}/snapshots/${name}/rollback`); const res = await api.get(`/instances/${instance._id}/snapshots`); setSnapshots(res.data.snapshots); }
+        catch (err) { setError(err.response?.data?.error || 'Rollback failed'); }
+        finally { setSnapLoading(''); }
+      },
+    });
   };
 
   const currentSnap = snapshots?.find(s => s.name === 'current')?.parent;
@@ -121,8 +149,10 @@ export default function InstanceCard({ instance, onDelete, onStatusChange }) {
         {showSnapshots && (
           <div style={s.snapContent}>
             <form onSubmit={createSnapshot} style={s.snapForm}>
-              <input type="text" placeholder="snapshot name" value={snapName} onChange={e => setSnapName(e.target.value)} required style={s.snapInput} />
-              <button type="submit" style={s.snapCreateBtn}>Create</button>
+              <input type="text" placeholder="snapshot name" value={snapName} onChange={e => setSnapName(e.target.value)} required style={s.snapInput} disabled={!!snapLoading} />
+              <button type="submit" style={s.snapCreateBtn} disabled={!!snapLoading}>
+                {snapLoading === 'create' ? <span style={sp} /> : 'Create'}
+              </button>
             </form>
             {snapshots && snapshots.filter(s => s.name !== 'current').length > 0 ? (
               <div style={s.snapList}>
@@ -133,8 +163,12 @@ export default function InstanceCard({ instance, onDelete, onStatusChange }) {
                       {s.name}
                     </span>
                     <div style={{ display: 'flex', gap: '4px' }}>
-                      <button onClick={() => rollbackSnapshot(s.name)} style={s.snapActionBtn} title="Rollback"><RotateCcw size={12} /></button>
-                      <button onClick={() => deleteSnapshot(s.name)} style={{ ...s.snapActionBtn, color: '#F87171' }} title="Delete"><X size={12} /></button>
+                      <button onClick={() => rollbackSnapshot(s.name)} style={s.snapActionBtn} disabled={!!snapLoading} title="Rollback">
+                        {snapLoading === 'rollback' ? <span style={sp} /> : <RotateCcw size={12} />}
+                      </button>
+                      <button onClick={() => deleteSnapshot(s.name)} style={{ ...s.snapActionBtn, color: '#F87171' }} disabled={!!snapLoading} title="Delete">
+                        {snapLoading === 'delete' ? <span style={sp} /> : <X size={12} />}
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -148,6 +182,15 @@ export default function InstanceCard({ instance, onDelete, onStatusChange }) {
 
       {showResize && <ResizeModal instance={instance} onClose={() => setShowResize(false)} onResized={handleResized} />}
       {showConnect && <TerminalConsole instance={instance} onClose={() => setShowConnect(false)} />}
+      <ConfirmModal
+        open={confirm.open}
+        title={confirm.title}
+        message={confirm.message}
+        confirmLabel={confirm.confirmLabel}
+        variant={confirm.variant}
+        onConfirm={confirm.onConfirm}
+        onCancel={() => setConfirm({ open: false })}
+      />
     </div>
   );
 }

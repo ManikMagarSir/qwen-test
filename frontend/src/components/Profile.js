@@ -4,7 +4,7 @@ import api from '../api/axios';
 import { User, Mail, Shield, Calendar, Loader, Save, Lock } from 'lucide-react';
 
 export default function Profile() {
-  const { user, login: refreshUser } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [name, setName] = useState(user?.name || '');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -17,7 +17,7 @@ export default function Profile() {
     setMessage({ type: '', text: '' });
     try {
       await api.put('/profile', { name });
-      window.location.reload();
+      await refreshUser();
       setMessage({ type: 'success', text: 'Profile updated' });
     } catch (err) {
       setMessage({ type: 'error', text: err.response?.data?.error || 'Update failed' });

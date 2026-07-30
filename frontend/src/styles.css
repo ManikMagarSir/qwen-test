@@ -176,8 +176,22 @@ input, select, textarea { font-family: var(--font); }
 @media (max-width: 768px) {
   .bento-grid { grid-template-columns: 1fr !important; }
   .bento-wide { grid-column: span 1 !important; }
+  .desktop-only { display: none !important; }
+  .mobile-only { display: flex !important; }
+  .sidebar-overlay { display: block !important; }
+}
+
+@media (min-width: 769px) {
+  .mobile-only { display: none !important; }
+  .sidebar-overlay { display: none !important; }
 }
 
 @media (min-width: 900px) {
   .auth-brand-col { display: flex !important; }
+}
+
+@media (max-width: 500px) {
+  .btn { padding: 8px 14px !important; font-size: 0.82rem !important; }
+  .instance-grid { grid-template-columns: 1fr !important; gap: 10px !important; }
+  .dashboard-stats { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
 }

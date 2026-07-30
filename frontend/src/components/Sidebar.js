@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Plus, BarChart3, User, LogOut, Cloud, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 
-export default function Sidebar({ collapsed, onToggle }) {
+export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose, isMobile }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -21,13 +21,16 @@ export default function Sidebar({ collapsed, onToggle }) {
   return (
     <aside style={{
       ...s.sidebar,
-      width: collapsed ? '64px' : '240px',
+      width: isMobile ? '260px' : (collapsed ? '64px' : '240px'),
+      position: isMobile ? 'fixed' : 'fixed',
+      transform: isMobile ? (mobileOpen ? 'translateX(0)' : 'translateX(-100%)') : 'none',
+      zIndex: isMobile ? 100 : 90,
     }}>
       <div style={s.brand}>
         <div style={s.brandIcon}>
           <Cloud size={20} color="var(--accent)" />
         </div>
-        {!collapsed && (
+        {(!collapsed || isMobile) && (
           <div style={s.brandTextWrap}>
             <span style={s.brandText}>Cloud Manager</span>
             <span style={s.brandBadge}>v2.0</span>
@@ -38,9 +41,10 @@ export default function Sidebar({ collapsed, onToggle }) {
       <nav style={s.nav}>
         {links.map(l => (
           <NavLink key={l.to} to={l.to} end={l.to === '/dashboard'}
+            onClick={() => isMobile && onMobileClose && onMobileClose()}
             style={({ isActive }) => ({
               ...s.link,
-              justifyContent: collapsed ? 'center' : 'flex-start',
+              justifyContent: (collapsed && !isMobile) ? 'center' : 'flex-start',
               background: isActive ? 'var(--accent-dim)' : 'transparent',
               color: isActive ? 'var(--accent)' : 'var(--text-secondary)',
             })}>
@@ -48,7 +52,7 @@ export default function Sidebar({ collapsed, onToggle }) {
               <>
                 {isActive && <div style={s.activeBar} />}
                 <l.icon size={18} />
-                {!collapsed && <span style={s.linkLabel}>{l.label}</span>}
+                {(!collapsed || isMobile) && <span style={s.linkLabel}>{l.label}</span>}
               </>
             )}
           </NavLink>
@@ -56,7 +60,7 @@ export default function Sidebar({ collapsed, onToggle }) {
       </nav>
 
       <div style={s.footer}>
-        {!collapsed && user && (
+        {(!collapsed || isMobile) && user && (
           <div style={s.userInfo}>
             <div style={s.avatar}>
               {(user?.name || user?.email || 'U')[0].toUpperCase()}
@@ -68,12 +72,12 @@ export default function Sidebar({ collapsed, onToggle }) {
           </div>
         )}
         <div style={s.footerActions}>
-          <button onClick={onToggle} style={s.iconBtn} title={collapsed ? 'Expand' : 'Collapse'}>
+          {!isMobile && <button onClick={onToggle} style={s.iconBtn} title={collapsed ? 'Expand' : 'Collapse'}>
             {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-          </button>
+          </button>}
           <button onClick={handleLogout} style={s.logoutBtn}>
             <LogOut size={16} />
-            {!collapsed && 'Sign Out'}
+            {(!collapsed || isMobile) && 'Sign Out'}
           </button>
         </div>
       </div>
